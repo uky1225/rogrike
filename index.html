@@ -12,26 +12,27 @@
             padding: 0;
         }
 
-        html, body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+        body {
             background-color: #040406;
             color: #e0e0e0;
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* 레터박스 없이 화면 비율에 맞춰 꽉 채우며 내부 요소를 스케일링하기 위한 컨테이너 */
         #game-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 960px;
-            height: 540px;
-            transform: translate(-50%, -50%);
+            position: relative;
+            width: min(100vw, 177.78vh);
+            height: min(56.25vw, 100vh);
             background-color: #08080c;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(230, 0, 0, 0.2);
+            border: 2px solid #3a1515;
+            border-radius: 6px;
             overflow: hidden;
-            transform-origin: center center;
         }
 
         canvas {
@@ -50,10 +51,8 @@
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
-            z-index: 20; /* UI가 캔버스 그래픽 위로 오도록 보장 */
         }
 
-        /* 플레이어 상태창 */
         .player-status-container {
             position: absolute;
             top: 10px; left: 10px;
@@ -115,7 +114,6 @@
             transition: width 0.2s ease-out;
         }
 
-        /* 보스 HUD */
         #boss-hud {
             display: none;
             position: absolute;
@@ -129,7 +127,6 @@
             padding: 6px 12px;
             box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
             backdrop-filter: blur(4px);
-            z-index: 25;
         }
 
         .boss-name-title {
@@ -176,7 +173,6 @@
             text-shadow: 1px 1px 2px #000;
         }
 
-        /* 스테이지 가이드 HUD */
         .stage-hud {
             position: absolute;
             top: 10px;
@@ -261,7 +257,6 @@
             text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
         }
 
-        /* 로비 화면 */
         #start-screen {
             position: absolute;
             inset: 0;
@@ -270,7 +265,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 30;
+            z-index: 10;
             pointer-events: auto;
             overflow-y: auto;
             padding: 30px 20px;
@@ -505,14 +500,13 @@
 <body>
 
 <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
 
-    <!-- 인게임 UI -->
     <div id="in-game-ui" class="ui-overlay">
         <div class="player-status-container">
             <div class="bar-label">
                 <span>HP</span>
-                <span id="player-hp-text">300 / 300</span>
+                <span id="player-hp-text">1000 / 1000</span>
             </div>
             <div class="bar-bg">
                 <div id="player-hp-white" class="hp-bar-white"></div>
@@ -521,7 +515,7 @@
 
             <div class="bar-label">
                 <span id="player-level-text" style="color: #00e676;">LV. 1</span>
-                <span id="player-xp-text" style="color: #aaa;">0 / 50 XP</span>
+                <span id="player-xp-text" style="color: #aaa;">0 / 10 XP</span>
             </div>
             <div class="xp-bar-bg">
                 <div id="player-xp-fill" class="xp-bar-fill"></div>
@@ -529,10 +523,9 @@
         </div>
 
         <div class="stage-hud" id="stage-hud-info">
-            STAGE 1 (보스까지 남은 수: 45)
+            STAGE 1 (0/10)
         </div>
 
-        <!-- 보스 전용 대형 HUD -->
         <div id="boss-hud">
             <div class="boss-name-title" id="boss-name-text">STAGE 1 BOSS</div>
             <div class="boss-hp-bg">
@@ -559,7 +552,6 @@
         </div>
     </div>
 
-    <!-- 로비 화면 -->
     <div id="start-screen">
         <h1 class="game-title">로그라이크</h1>
         <p class="game-subtitle">2D PIXEL ROGUELIKE BOSS RAID</p>
@@ -571,9 +563,9 @@
         </div>
     </div>
 
-    <!-- 게임 오버 화면 -->
     <div id="game-over-screen">
         <h1 style="font-size: 36px; color: #ff3333; margin-bottom: 6px;">GAME OVER</h1>
+        <p id="final-stage" style="font-size: 14px; color: #ffd700; margin-bottom: 4px;">도달 스테이지: STAGE 1 (0/10)</p>
         <p id="final-score" style="font-size: 13px; color: #ccc; margin-bottom: 4px;">처치한 몬스터: 0</p>
         <p id="final-level" style="font-size: 12px; color: #00e676; margin-bottom: 16px;">최종 레벨: LV.1</p>
         <div style="display: flex; gap: 8px;">
@@ -582,7 +574,6 @@
         </div>
     </div>
 
-    <!-- 승리 화면 -->
     <div id="victory-screen">
         <h1 style="font-size: 40px; color: #ffd700; margin-bottom: 6px; text-shadow: 0 0 20px #ffb74d;">🏆 ALL STAGES CLEARED!</h1>
         <p style="font-size: 14px; color: #fff; margin-bottom: 16px;">모든 보스를 물리치고 아레나의 최고 정점에 올랐습니다!</p>
@@ -592,7 +583,6 @@
         </div>
     </div>
 
-    <!-- 일시정지 모달 -->
     <div class="modal" id="modal-pause">
         <div class="modal-content">
             <div class="modal-header">⏸️ 게임 일시 정지</div>
@@ -603,7 +593,6 @@
         </div>
     </div>
 
-    <!-- 도움말 모달 -->
     <div class="modal" id="modal-help">
         <div class="modal-content">
             <div class="modal-header">📖 상세 게임 설명 & 조작 가이드</div>
@@ -612,16 +601,22 @@
                     <div class="help-title">🕹️ 기본 조작법</div>
                     <div class="help-desc">
                         • <b>A / D:</b> 좌/우 이동 | <b>Space:</b> 점프 / 2단점프(업그레이드 시)<br>
-                        • <b>Enter:</b> 공격 (칼 휘두르기 / 활 차징 사격)<br>
+                        • <b>Enter:</b> 공격 (칼 휘두르기 / 활 차징 저격 사격)<br>
                         • <b>Q:</b> 무기 교체 (칼 ↔ 활)<br>
                         • <b>ESC:</b> 게임 일시정지
                     </div>
                 </div>
                 <div class="help-section">
-                    <div class="help-title">👹 보스 레이드 시스템</div>
+                    <div class="help-title">🛡️ 방어막 시스템</div>
                     <div class="help-desc">
-                        • 일반 몹을 지정 수만큼 처치하면 **각 스테이지의 대형 보스**가 등장합니다.<br>
-                        • 보스는 강력한 필살기와 소환 패턴, 공격 경고 장판(붉은 구역)을 보유하고 있습니다.
+                        • 업그레이드를 통해 방어막을 획득하면 적에게 받는 **모든 데미지가 10% 감소**합니다.
+                    </div>
+                </div>
+                <div class="help-section">
+                    <div class="help-title">👹 보스 레이드 & 전투 팁</div>
+                    <div class="help-desc">
+                        • 보스는 화려한 탄막과 장판, 충격파를 사용합니다. **점프로 붉은 바닥 장판과 충격파를 회피**하세요!<br>
+                        • 원거리에서 **활 차징 저격**으로 보스의 체력을 안전하게 깎는 것이 핵심입니다.
                     </div>
                 </div>
             </div>
@@ -629,17 +624,15 @@
         </div>
     </div>
 
-    <!-- 레벨업 모달 -->
     <div class="modal" id="modal-levelup">
         <div class="modal-content">
-            <div class="modal-header" id="modal-levelup-header">🎉 LEVEL UP!</div>
+            <div class="modal-header">🎉 LEVEL UP!</div>
             <div class="modal-body">
                 <div class="upgrade-cards-container" id="upgrade-cards-list"></div>
             </div>
         </div>
     </div>
 
-    <!-- 설정 모달 -->
     <div class="modal" id="modal-settings">
         <div class="modal-content">
             <div class="modal-header">⚙️ 게임 설정</div>
@@ -674,27 +667,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
-// 기준이 되는 고정 가상 게임 해상도 설정 (960 x 540)
-const BASE_WIDTH = 960;
-const BASE_HEIGHT = 540;
-let GROUND_Y = 440;
-
-function resizeCanvas() {
-    canvas.width = BASE_WIDTH;
-    canvas.height = BASE_HEIGHT;
-    
-    const container = document.getElementById('game-container');
-    const scaleX = window.innerWidth / BASE_WIDTH;
-    const scaleY = window.innerHeight / BASE_HEIGHT;
-    const scale = Math.max(scaleX, scaleY);
-    
-    container.style.width = `${BASE_WIDTH}px`;
-    container.style.height = `${BASE_HEIGHT}px`;
-    container.style.transform = `translate(-50%, -50%) scale(${scale})`;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
 const keyBindings = { left: 'KeyA', right: 'KeyD', jump: 'Space', attack: 'Enter', swap: 'KeyQ' };
 const attackSettings = { autoAim: false };
 const keysPressed = {};
@@ -705,13 +677,13 @@ let score = 0;
 let lastTime = 0;
 let spawnTimer = 0;
 let spawnInterval = 3000;
+const GROUND_Y = 440;
 
 let currentStage = 1;
 let mobsKilledInStage = 0;
-let stageMobsRequired = [45, 45, 45]; // 스테이지별 요구 처치 몬스터 수 45마리
+let stageMobsRequired = [10, 15, 20];
 let bossActive = false;
 let currentBoss = null;
-let bossUpgradeRemaining = 0; // 보스 처치 후 남은 업그레이드 횟수
 
 let screenShakeTime = 0;
 let screenShakeIntensity = 0;
@@ -859,7 +831,7 @@ const ORC_PIXEL_MAP = [
     [1,1,1,0,0,0,0,1,1,1,0,0,0]
 ];
 
-const BOSS_PIXEL_MAP = [
+const BOSS_PIXEL_MAP_1 = [
     [0,0,0,1,1,1,1,1,1,1,1,0,0,0],
     [0,0,1,2,2,2,2,2,2,2,2,1,0,0],
     [0,1,2,3,3,2,2,2,2,3,3,2,1,0],
@@ -875,10 +847,41 @@ const BOSS_PIXEL_MAP = [
     [0,1,1,10,10,0,0,10,10,10,11,1,0]
 ];
 
+const BOSS_PIXEL_MAP_2 = [
+    [0,0,0,0,1,1,1,1,0,0,0,0],
+    [0,0,0,1,1,1,1,1,1,0,0,0],
+    [0,0,1,1,2,2,2,2,1,1,0,0],
+    [0,1,1,2,3,2,2,3,2,1,1,0],
+    [0,1,1,2,2,2,2,2,2,1,1,0],
+    [1,1,1,4,4,4,4,4,4,1,1,1],
+    [1,5,5,5,5,5,5,5,5,5,5,1],
+    [1,5,5,6,6,5,5,6,6,5,5,1],
+    [1,5,5,5,5,5,5,5,5,5,5,1],
+    [0,1,5,5,5,5,5,5,5,5,1,0],
+    [0,0,1,7,7,7,7,7,7,7,1,0],
+    [0,0,1,7,0,0,0,0,0,7,1,0]
+];
+
+const BOSS_PIXEL_MAP_3 = [
+    [0,1,1,1,1,1,1,1,1,1,1,1,0],
+    [1,2,2,2,2,2,2,2,2,2,2,2,1],
+    [1,2,3,3,2,2,4,4,2,2,3,3,1],
+    [1,2,3,3,2,2,4,4,2,2,3,3,1],
+    [1,2,2,2,2,5,5,5,2,2,2,2,1],
+    [1,6,6,6,6,6,6,6,6,6,6,6,1],
+    [1,6,7,7,7,7,7,7,7,7,7,6,1],
+    [1,6,7,8,8,7,7,7,8,8,7,6,1],
+    [0,1,6,6,6,6,6,6,6,6,6,1,0],
+    [0,0,1,9,9,9,9,9,9,9,1,0,0],
+    [0,1,9,9,0,0,0,0,0,9,9,1,0],
+    [1,1,9,0,0,0,0,0,0,0,9,1,1]
+];
+
 const UPGRADES_DEF = [
-    { id: 'hp', name: '추가 체력', icon: '❤️', max: 5, desc: '체력 +20 증가 및 회복' },
+    { id: 'hp', name: '추가 체력', icon: '❤️', max: 5, desc: '최대 체력 +200 증가 및 풀회복' },
+    { id: 'shield', name: '보호막 장갑', icon: '🛡️', max: 3, desc: '적에게 받는 데미지 10% 감소' },
     { id: 'meleeDmg', name: '칼 대미지', icon: '⚔️', max: 5, desc: '칼 기본 데미지 +5' },
-    { id: 'rangedDmg', name: '활 대미지', icon: '🏹', max: 3, desc: '활 완전 차징 데미지 +4' },
+    { id: 'rangedDmg', name: '활 대미지', icon: '🏹', max: 3, desc: '활 완전 차징 데미지 대폭 강화' },
     { id: 'chargeSpeed', name: '차징 속도', icon: '⚡', max: 3, desc: '활 차징 속도 향상' },
     { id: 'attackSpeed', name: '공격 쿨타임', icon: '🗡️', max: 5, desc: '칼 베기 쿨다운 감소' },
     { id: 'moveSpeed', name: '이동 속도', icon: '👟', max: 3, desc: '이동 속도 +12% 증가' },
@@ -891,26 +894,26 @@ const player = {
     vx: 0, vy: 0,
     baseSpeed: 4.8, jumpForce: -11.5,
     isGrounded: true, jumpsLeft: 1, maxJumps: 1,
-    hp: 300, maxHp: 300, whiteHp: 300,
-    level: 1, xp: 0, nextXp: 50,
+    hp: 1000, maxHp: 1000, whiteHp: 1000,
+    level: 1, xp: 0, nextXp: 10,
     facing: 1, weapon: 'sword',
     isAttackKeyDown: false, attackKeyPressedTime: 0,
     swordSwingTimer: 0, swordCooldownTimer: 0,
     stunTimer: 0, slashTrails: [],
 
-    upgrades: { hp: 0, meleeDmg: 0, rangedDmg: 0, chargeSpeed: 0, attackSpeed: 0, moveSpeed: 0, doubleJump: 0 },
+    upgrades: { hp: 0, shield: 0, meleeDmg: 0, rangedDmg: 0, chargeSpeed: 0, attackSpeed: 0, moveSpeed: 0, doubleJump: 0 },
 
     getMeleeDamage() { return 24 + (this.upgrades.meleeDmg * 5); },
-    getRangedDamage() { return 18 + (this.upgrades.rangedDmg * 4); },
-    getChargeTime() { return 1.6 - (this.upgrades.chargeSpeed * 0.3); },
+    getRangedDamage() { return 22 + (this.upgrades.rangedDmg * 10); },
+    getChargeTime() { return 1.5 - (this.upgrades.chargeSpeed * 0.3); },
     getAttackCooldown() { return 0.45 - (this.upgrades.attackSpeed * 0.06); },
     getSpeed() { return this.baseSpeed * (1 + this.upgrades.moveSpeed * 0.12); },
 
     reset() {
-        this.x = BASE_WIDTH / 2; this.y = GROUND_Y - this.height;
+        this.x = 480; this.y = GROUND_Y - this.height;
         this.vx = 0; this.vy = 0;
-        this.maxHp = 300; this.hp = 300; this.whiteHp = 300;
-        this.level = 1; this.xp = 0; this.nextXp = 50;
+        this.maxHp = 1000; this.hp = 1000; this.whiteHp = 1000;
+        this.level = 1; this.xp = 0; this.nextXp = 10;
         this.weapon = 'sword'; this.facing = 1;
         this.swordCooldownTimer = 0; this.swordSwingTimer = 0;
         this.stunTimer = 0; this.maxJumps = 1; this.jumpsLeft = 1;
@@ -961,13 +964,10 @@ const player = {
         }
 
         if (this.x < 10) this.x = 10;
-        if (this.x + this.width > BASE_WIDTH - 10) this.x = BASE_WIDTH - 10 - this.width;
+        if (this.x + this.width > canvas.width - 10) this.x = canvas.width - 10 - this.width;
 
         if (this.swordSwingTimer > 0) this.swordSwingTimer -= dt;
         if (this.swordCooldownTimer > 0) this.swordCooldownTimer -= dt;
-
-        this.slashTrails.forEach(t => t.life -= dt * 4.0);
-        this.slashTrails = this.slashTrails.filter(t => t.life > 0);
 
         if (this.whiteHp > this.hp) {
             this.whiteHp -= 0.3;
@@ -984,8 +984,8 @@ const player = {
         this.applyAutoAim();
 
         const attackHitbox = {
-            x: this.facing === 1 ? this.x + this.width - 6 : this.x - 70,
-            y: this.y - 4, width: 76, height: this.height + 8
+            x: this.facing === 1 ? this.x : this.x - 70,
+            y: this.y - 15, width: 95, height: this.height + 30
         };
 
         monsters.forEach(m => {
@@ -995,7 +995,7 @@ const player = {
         });
 
         if (currentBoss && !currentBoss.isDying && checkRectOverlap(attackHitbox, currentBoss)) {
-            currentBoss.takeDamage(this.getMeleeDamage());
+            currentBoss.takeDamage(this.getMeleeDamage(), this.facing);
         }
 
         projectiles.forEach(p => {
@@ -1018,7 +1018,7 @@ const player = {
         const chargeRatio = Math.min(1.0, chargeDuration / requiredTime);
         const isFullCharge = chargeRatio >= 1.0;
 
-        const finalDamage = isFullCharge ? this.getRangedDamage() : (this.getRangedDamage() * (0.25 + chargeRatio * 0.3));
+        const finalDamage = isFullCharge ? this.getRangedDamage() : (this.getRangedDamage() * (0.3 + chargeRatio * 0.4));
 
         projectiles.push(new PixelArrow(
             this.x + (this.facing === 1 ? this.width + 8 : -8),
@@ -1053,14 +1053,17 @@ const player = {
         while (this.xp >= this.nextXp) {
             this.xp -= this.nextXp;
             this.level++;
-            this.nextXp = Math.floor(55 * Math.pow(1.3, this.level - 1));
-            triggerLevelUpModal('LEVEL UP!', 1);
+            this.nextXp = 10 + (this.level - 1) * 15;
+            triggerLevelUpModal();
         }
         updatePlayerXpUI();
     },
 
     takeDamage(dmg) {
-        this.hp -= dmg;
+        const reduction = 1.0 - (this.upgrades.shield * 0.1);
+        const finalDmg = Math.round(dmg * reduction);
+
+        this.hp -= finalDmg;
         if (this.hp < 0) this.hp = 0;
         triggerScreenShake(4, 0.2);
         createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ff3333', 8);
@@ -1076,6 +1079,16 @@ const player = {
             13: '#263238', 14: '#3e2723', 15: '#110a08'
         };
         drawPixelGrid(ctx, this.x, this.y, this.pSize, PLAYER_PIXEL_MAP, colors, this.facing === -1);
+
+        if (this.upgrades.shield > 0) {
+            ctx.save();
+            ctx.strokeStyle = `rgba(0, 176, 255, ${0.3 + this.upgrades.shield * 0.15})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width * 0.85, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
 
         const isRight = this.facing === 1;
         const px = Math.round(this.x);
@@ -1109,35 +1122,30 @@ const player = {
 
             if (this.swordSwingTimer > 0) {
                 const progress = (0.22 - this.swordSwingTimer) / 0.22;
-                const arcLength = Math.PI * 0.72;
+                const arcLength = Math.PI * 0.7;
                 
                 let startAngle, currentAngle;
                 if (isRight) {
-                    startAngle = -Math.PI * 0.55;
+                    startAngle = -Math.PI * 0.5;
                     currentAngle = startAngle + (progress * arcLength);
                 } else {
-                    startAngle = Math.PI + Math.PI * 0.55;
+                    startAngle = Math.PI + Math.PI * 0.5;
                     currentAngle = startAngle - (progress * arcLength);
                 }
 
                 ctx.save();
                 ctx.translate(handX, handY);
-
                 ctx.beginPath();
-                const outerRadius = 65;
-                const innerRadius = 15;
-
-                ctx.arc(0, 0, outerRadius, startAngle, currentAngle, !isRight);
-                ctx.arc(0, 0, innerRadius, currentAngle, startAngle, isRight);
+                ctx.arc(0, 0, 48, startAngle, currentAngle, !isRight);
+                ctx.arc(0, 0, 10, currentAngle, startAngle, isRight);
                 ctx.closePath();
 
-                const grad = ctx.createRadialGradient(0, 0, innerRadius, 0, 0, outerRadius);
-                grad.addColorStop(0, 'rgba(0, 230, 118, 0.05)');
-                grad.addColorStop(0.6, 'rgba(0, 230, 118, 0.5)');
-                grad.addColorStop(1, 'rgba(255, 255, 255, 0.95)');
+                const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 48);
+                grad.addColorStop(0, 'rgba(0, 230, 118, 0.1)');
+                grad.addColorStop(0.7, 'rgba(0, 230, 118, 0.4)');
+                grad.addColorStop(1, 'rgba(255, 255, 255, 0.9)');
                 ctx.fillStyle = grad;
                 ctx.fill();
-
                 ctx.restore();
             }
 
@@ -1188,7 +1196,7 @@ const player = {
             if (this.isAttackKeyDown) {
                 ctx.fillStyle = '#8d6e63';
                 ctx.fillRect(strX, -1, 18, 2);
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = chargeRatio >= 1.0 ? '#ffd700' : '#ffffff';
                 ctx.fillRect(strX + 16, -2, 4, 4);
 
                 ctx.restore();
@@ -1197,7 +1205,7 @@ const player = {
                 const barY = Math.round(this.y - 12);
                 ctx.fillStyle = 'rgba(0,0,0,0.85)';
                 ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
-                ctx.fillStyle = chargeRatio >= 1.0 ? '#00e676' : '#ffb74d';
+                ctx.fillStyle = chargeRatio >= 1.0 ? '#ffd700' : '#00e676';
                 ctx.fillRect(barX, barY, Math.floor(barW * chargeRatio), barH);
                 ctx.save();
             } else {
@@ -1227,16 +1235,11 @@ class PixelArrow {
         this.stuckTarget = null;
         this.offsetX = 0; this.offsetY = 0;
 
-        if (this.isFullCharge) {
-            this.vx = facing * 20;
-            this.vy = 0;
-            this.gravity = 0;
-        } else {
-            const speed = 7 + (chargeRatio * 9);
-            this.vx = facing * speed;
-            this.vy = -0.5 - (chargeRatio * 1.0);
-            this.gravity = 0.08 + ((1 - chargeRatio) * 0.25);
-        }
+        const speedMultiplier = this.isFullCharge ? 1.5 : 1.0;
+        const speed = (10 + (chargeRatio * 10)) * speedMultiplier;
+        this.vx = facing * speed;
+        this.vy = 0;
+        this.gravity = this.isFullCharge ? 0 : 0.05;
     }
 
     update(dt) {
@@ -1259,15 +1262,15 @@ class PixelArrow {
             this.stuck = true;
         }
 
-        if (this.x < -20 || this.x > BASE_WIDTH + 20) this.active = false;
+        if (this.x < -30 || this.x > canvas.width + 30) this.active = false;
 
         let targets = [...monsters];
         if (currentBoss && !currentBoss.isDying) targets.push(currentBoss);
 
         targets.forEach(m => {
-            if (!this.stuck && !m.isDying && checkCircleRectOverlap({ x: this.x, y: this.y, radius: 4 }, m)) {
-                m.takeDamage(this.damage);
-                createHitParticles(this.x, this.y, this.isFullCharge ? '#ffd700' : '#8d6e63', 5);
+            if (!this.stuck && !m.isDying && checkCircleRectOverlap({ x: this.x, y: this.y, radius: 5 }, m)) {
+                m.takeDamage(this.damage, this.facing);
+                createHitParticles(this.x, this.y, this.isFullCharge ? '#ffd700' : '#8d6e63', this.isFullCharge ? 10 : 5);
 
                 this.stuck = true;
                 this.stuckTarget = m;
@@ -1283,14 +1286,15 @@ class PixelArrow {
         ctx.translate(this.x, this.y);
         ctx.rotate(angle);
 
-        if (this.stuck) {
-            ctx.fillStyle = '#8d6e63'; ctx.fillRect(-10, -1, 8, 2);
-            ctx.fillStyle = '#ff5252'; ctx.fillRect(-12, -2, 3, 4);
+        if (this.isFullCharge) {
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(-6, -3, 16, 6);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(8, -2, 4, 4);
         } else {
-            ctx.fillStyle = this.isFullCharge ? '#ffd700' : '#b0bec5';
+            ctx.fillStyle = '#b0bec5';
             ctx.fillRect(4, -1.5, 4, 3);
             ctx.fillStyle = '#8d6e63'; ctx.fillRect(-8, -1, 12, 2);
-            ctx.fillStyle = '#ff5252'; ctx.fillRect(-10, -2, 3, 4);
         }
         ctx.restore();
     }
@@ -1308,7 +1312,7 @@ class MonsterBullet {
 
     update() {
         this.x += this.vx; this.y += this.vy;
-        if (this.x < 0 || this.x > BASE_WIDTH || this.y < 0 || this.y > BASE_HEIGHT) this.active = false;
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
 
         if (this.active && checkCircleRectOverlap(this, player)) {
             player.takeDamage(this.damage);
@@ -1323,25 +1327,30 @@ class MonsterBullet {
 }
 
 class Shockwave {
-    constructor(x, y, dir, damage = 12) {
+    constructor(x, y, dir, damage = 14) {
         this.x = x; this.y = y; this.dir = dir;
-        this.width = 16; this.height = 30;
-        this.speed = 6.0; this.damage = damage;
+        this.width = 28; this.height = 14;
+        this.speed = 7.5; this.damage = damage;
         this.active = true;
     }
     update(dt) {
         this.x += this.dir * this.speed;
-        if (this.x < 0 || this.x > BASE_WIDTH) this.active = false;
+        if (this.x < 0 || this.x > canvas.width) this.active = false;
 
         if (this.active && checkRectOverlap(this, player)) {
-            player.takeDamage(this.damage);
-            player.stunTimer = 0.5;
-            this.active = false;
+            if (player.y + player.height >= GROUND_Y - 4) {
+                player.takeDamage(this.damage);
+                player.stunTimer = 0.3;
+                this.active = false;
+                createHitParticles(player.x + player.width/2, player.y + player.height, '#ff9800', 6);
+            }
         }
     }
     draw() {
         ctx.fillStyle = '#ff9800';
         ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+        ctx.fillStyle = '#ffeb3b';
+        ctx.fillRect(this.x + 2, this.y - this.height + 3, this.width - 4, 3);
     }
 }
 
@@ -1361,12 +1370,11 @@ class Telegraph {
     }
     draw() {
         const ratio = 1 - (this.duration / this.maxDuration);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.18)';
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.25)';
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.fillStyle = 'rgba(255, 50, 50, 0.45)';
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
         ctx.fillRect(this.x, this.y, this.width * ratio, this.height);
-        ctx.strokeStyle = '#ff3333';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#ff0000';
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     }
 }
@@ -1382,7 +1390,7 @@ class FallingMeteor {
             this.active = false;
             triggerScreenShake(6, 0.25);
             createHitParticles(this.x, this.targetY, '#ff3333', 15);
-            if (checkCircleRectOverlap({ x: this.x, y: this.targetY, radius: 24 }, player)) {
+            if (checkCircleRectOverlap({ x: this.x, y: this.targetY, radius: 26 }, player)) {
                 player.takeDamage(this.damage);
             }
         }
@@ -1399,7 +1407,7 @@ class Monster {
     constructor(type, spawnSide) {
         this.type = type;
         this.width = 30; this.height = 36;
-        this.x = spawnSide === 'left' ? -this.width : BASE_WIDTH;
+        this.x = spawnSide === 'left' ? 20 : canvas.width - 50;
         this.y = GROUND_Y - this.height;
         this.vx = 0; this.vy = 0;
         this.active = true;
@@ -1407,22 +1415,23 @@ class Monster {
         this.deathTimer = 0.4;
 
         this.hitFlashTimer = 0;
+        this.hitStunTimer = 0;
         this.walkAnimTimer = Math.random() * 10;
         this.pSize = 2.7;
         this.patternTimer = 0;
 
         if (type === 'imp') {
-            this.maxHp = 22; this.speed = 2.8; this.damage = 9; this.xpValue = 6;
+            this.maxHp = 22; this.speed = 2.8; this.damage = 8; this.xpValue = 6;
             this.state = 'APPROACH';
             this.leapCooldown = 0;
         } else if (type === 'orc') {
-            this.maxHp = 60; this.speed = 1.3; this.damage = 16; this.xpValue = 14;
+            this.maxHp = 60; this.speed = 1.3; this.damage = 14; this.xpValue = 14;
             this.height = 40; this.width = 35; this.y = GROUND_Y - this.height;
             this.isBlocking = false;
             this.blockTimer = 0;
             this.smashCooldown = 1.0;
         } else if (type === 'mage') {
-            this.maxHp = 32; this.speed = 1.4; this.damage = 12; this.xpValue = 10;
+            this.maxHp = 32; this.speed = 1.4; this.damage = 10; this.xpValue = 10;
             this.castTimer = 0; this.teleportCooldown = 0;
         }
 
@@ -1431,18 +1440,21 @@ class Monster {
 
     onMeleeAttacked(dmg, facingDir) {
         if (this.type === 'orc' && this.isBlocking) {
-            dmg *= 0.2;
+            dmg *= 0.4;
             floatingTexts.push(new FloatingText("🛡️ 방패 방어!", this.x + this.width/2, this.y - 12, '#b0bec5'));
         }
-        
-        this.takeDamage(dmg);
-        this.vx += facingDir * 4.5;
+        this.takeDamage(dmg, facingDir);
     }
 
-    takeDamage(dmg) {
+    takeDamage(dmg, facingDir = 1) {
         if (this.isDying) return;
         this.hp -= dmg;
         this.hitFlashTimer = 0.1;
+        this.hitStunTimer = 0.3;
+        
+        this.vx += facingDir * 5.0;
+        this.vy = -2.5;
+
         if (dmg > 0) {
             createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ffffff', 4);
             floatingTexts.push(new FloatingText(`-${Math.round(dmg)}`, this.x + this.width/2, this.y - 8, '#ff5252'));
@@ -1474,6 +1486,21 @@ class Monster {
         if (this.hitFlashTimer > 0) this.hitFlashTimer -= dt;
 
         this.x += this.vx; this.vx *= 0.8;
+        this.y += this.vy;
+        if (this.y + this.height >= GROUND_Y) {
+            this.y = GROUND_Y - this.height;
+            this.vy = 0;
+        } else {
+            this.vy += 0.5;
+        }
+
+        if (this.hitStunTimer > 0) {
+            this.hitStunTimer -= dt;
+            // 피격 중에도 화면 밖으로 나가지 않도록 클램프 적용
+            this.x = Math.max(15, Math.min(canvas.width - this.width - 15, this.x));
+            return;
+        }
+
         const dir = player.x > this.x ? 1 : -1;
         this.walkAnimTimer += dt * 8;
 
@@ -1484,13 +1511,12 @@ class Monster {
             if (dist < 150 && dist > 40 && this.leapCooldown <= 0) {
                 this.vx = dir * 10;
                 this.vy = -6;
-                this.leapCooldown = 2.5;
-                floatingTexts.push(new FloatingText("⚡ 기습 습격!", this.x, this.y - 10, '#ff8a80'));
+                this.leapCooldown = 3.0;
             }
 
             if (this.state === 'APPROACH') {
                 this.x += dir * this.speed;
-                if (dist < 32) {
+                if (dist < 34) {
                     this.state = 'SLASH';
                     this.stateTimer = 0.18;
                     player.takeDamage(this.damage);
@@ -1512,9 +1538,9 @@ class Monster {
             if (this.smashCooldown > 0) this.smashCooldown -= dt;
 
             this.patternTimer += dt;
-            if (this.patternTimer >= 3.0) {
+            if (this.patternTimer >= 4.0) {
                 this.isBlocking = true;
-                this.blockTimer = 1.2;
+                this.blockTimer = 1.0;
                 this.patternTimer = 0;
             }
 
@@ -1526,15 +1552,9 @@ class Monster {
                 this.x += dir * this.speed;
             }
 
-            if (dist < 42 && this.smashCooldown <= 0) {
-                this.smashCooldown = 2.2;
-                player.stunTimer = 0.8;
-                player.takeDamage(this.damage);
-                player.vx = dir * 8;
+            if (dist < 60 && this.smashCooldown <= 0) {
+                this.smashCooldown = 3.0;
                 projectiles.push(new Shockwave(this.x, GROUND_Y, dir, 12));
-                triggerScreenShake(3, 0.15);
-                createHitParticles(player.x, player.y, '#ffd700', 10);
-                floatingTexts.push(new FloatingText("💥 지면 강타!", player.x, player.y - 20, '#ffee55'));
             }
 
         } else if (this.type === 'mage') {
@@ -1542,27 +1562,28 @@ class Monster {
             if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
 
             if (dist < 70 && this.teleportCooldown <= 0) {
-                createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ea80fc', 12);
-                this.x = player.x > BASE_WIDTH / 2 ? player.x - 220 : player.x + 220;
-                this.x = Math.max(30, Math.min(BASE_WIDTH - 60, this.x));
-                this.teleportCooldown = 4.5;
-                floatingTexts.push(new FloatingText("✨ 순간이동", this.x + 10, this.y - 10, '#ea80fc'));
+                createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ea80fc', 10);
+                this.x = player.x > canvas.width / 2 ? player.x - 220 : player.x + 220;
+                this.x = Math.max(30, Math.min(canvas.width - 60, this.x));
+                this.teleportCooldown = 5.0;
             }
 
             if (dist > 200) this.x += dir * this.speed;
 
             this.castTimer += dt;
-            if (this.castTimer >= 1.6) {
-                for (let i = -1; i <= 1; i++) {
-                    projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 8, player.x + player.width/2 + (i * 25), player.y + player.height/2));
-                }
+            if (this.castTimer >= 2.0) {
+                projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 8, player.x + player.width/2, player.y + player.height/2, 3.8, '#e040fb', 10));
                 this.castTimer = 0;
             }
         }
+
+        // 몬스터가 맵 양 끝을 벗어나지 못하도록 제한 (화면 안쪽으로 고정)
+        this.x = Math.max(15, Math.min(canvas.width - this.width - 15, this.x));
     }
 
     draw() {
         ctx.save();
+        const isFacingRight = player.x > this.x;
         let renderY = this.y - Math.abs(Math.sin(this.walkAnimTimer)) * 2;
 
         if (this.isDying) {
@@ -1571,7 +1592,6 @@ class Monster {
         }
 
         const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
-        const isFacingRight = player.x > this.x;
 
         if (this.type === 'imp') {
             const colors = { 1: '#d32f2f', 2: '#ff5252', 3: '#ffd700', 4: '#000000', 5: '#ff8a80', 6: '#78909c', 7: '#cfd8dc' };
@@ -1610,41 +1630,44 @@ class Boss {
         this.stage = stage;
         this.width = 50; this.height = 65;
         this.pSize = 3.8;
-        this.x = BASE_WIDTH / 2 - this.width / 2;
+        this.x = canvas.width / 2 - this.width / 2;
         this.y = GROUND_Y - this.height;
+        this.vx = 0; this.vy = 0;
         this.active = true;
         this.isDying = false;
         this.deathTimer = 1.0;
         this.hitFlashTimer = 0;
+        this.hitStunTimer = 0;
         this.actionTimer = 0;
-        this.ultCooldown = 12.0;
+        this.ultCooldown = 10.0;
 
         if (stage === 1) {
             this.name = "STAGE 1 BOSS : 광란의 블레이드 로드";
-            this.maxHp = 1000;
+            this.maxHp = 1200;
             this.damage = 18;
-            this.color = '#ff3333';
         } else if (stage === 2) {
             this.name = "STAGE 2 BOSS : 환영의 마도사";
-            this.maxHp = 2500;
+            this.maxHp = 2800;
             this.damage = 22;
-            this.color = '#ab47bc';
         } else {
             this.name = "FINAL BOSS : 종말의 카오스 디스트로이어";
-            this.maxHp = 5000;
+            this.maxHp = 5500;
             this.damage = 30;
-            this.color = '#ff1744';
         }
 
         this.hp = this.maxHp; this.whiteHp = this.maxHp;
         updateBossHUD(this);
     }
 
-    takeDamage(dmg) {
+    takeDamage(dmg, facingDir = 1) {
         if (this.isDying) return;
         this.hp -= dmg;
         this.hitFlashTimer = 0.1;
-        createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ffd700', 6);
+        this.hitStunTimer = 0.2;
+        
+        this.vx += facingDir * 1.0;
+
+        createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ffd700', 8);
         floatingTexts.push(new FloatingText(`-${Math.round(dmg)}`, this.x + this.width/2, this.y - 12, '#ffea00'));
 
         if (this.hp <= 0) {
@@ -1672,6 +1695,14 @@ class Boss {
         }
         if (this.hitFlashTimer > 0) this.hitFlashTimer -= dt;
 
+        this.x += this.vx; this.vx *= 0.85;
+
+        if (this.hitStunTimer > 0) {
+            this.hitStunTimer -= dt;
+            this.x = Math.max(20, Math.min(canvas.width - this.width - 20, this.x));
+            return;
+        }
+
         this.actionTimer += dt;
         this.ultCooldown -= dt;
 
@@ -1680,48 +1711,54 @@ class Boss {
         if (this.stage === 1) {
             if (this.ultCooldown <= 0) {
                 this.executeBoss1Ultimate();
-                this.ultCooldown = 15.0;
-            } else if (this.actionTimer >= 2.2) {
+                this.ultCooldown = 12.0;
+            } else if (this.actionTimer >= 1.5) {
                 const rand = Math.random();
-                if (rand < 0.4) {
-                    telegraphs.push(new Telegraph(0, GROUND_Y - 40, BASE_WIDTH, 40, 0.8, () => {
-                        this.x += dir * 280;
-                        this.x = Math.max(20, Math.min(BASE_WIDTH - 70, this.x));
-                        triggerScreenShake(6, 0.2);
-                        if (checkRectOverlap(this, player)) player.takeDamage(this.damage * 1.3);
-                    }));
-                } else if (rand < 0.7) {
-                    if (Math.abs(player.x - this.x) < 65) {
-                        player.takeDamage(this.damage);
-                        createHitParticles(player.x, player.y, '#ff1744', 10);
+                if (rand < 0.5) {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            projectiles.push(new Shockwave(this.x + (dir > 0 ? this.width : 0), GROUND_Y, dir, 15));
+                        }, i * 300);
                     }
+                    floatingTexts.push(new FloatingText("🗡️ 연속 참격 웨이브!", this.x, this.y - 15, '#ff5252'));
                 } else {
-                    projectiles.push(new Shockwave(this.x, GROUND_Y, 1, 16));
-                    projectiles.push(new Shockwave(this.x, GROUND_Y, -1, 16));
+                    telegraphs.push(new Telegraph(player.x - 50, GROUND_Y - 15, 100, 15, 0.7, () => {
+                        triggerScreenShake(6, 0.2);
+                        if (checkRectOverlap({ x: player.x - 50, y: GROUND_Y - 15, width: 100, height: 15 }, player)) {
+                            player.takeDamage(this.damage);
+                            player.stunTimer = 0.4;
+                        }
+                    }));
                 }
                 this.actionTimer = 0;
             } else {
-                this.x += dir * 1.8;
+                this.x += dir * 2.2;
             }
 
         } else if (this.stage === 2) {
             if (this.ultCooldown <= 0) {
                 this.executeBoss2Ultimate();
-                this.ultCooldown = 16.0;
-            } else if (this.actionTimer >= 2.0) {
+                this.ultCooldown = 13.0;
+            } else if (this.actionTimer >= 1.4) {
                 const rand = Math.random();
-                if (rand < 0.3) {
-                    for (let i = -2; i <= 2; i++) {
-                        projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 10, player.x + i * 30, player.y, 4.5, '#ab47bc', 14));
+                if (rand < 0.4) {
+                    for (let a = 0; a < Math.PI; a += Math.PI / 6) {
+                        const bx = this.x + this.width/2;
+                        const by = this.y + this.height/2;
+                        projectiles.push(new MonsterBullet(bx, by, bx + Math.cos(a) * 140, by + Math.sin(a) * 90, 3.8, '#ab47bc', 14));
                     }
-                } else if (rand < 0.6) {
-                    telegraphs.push(new Telegraph(0, player.y, BASE_WIDTH, 20, 0.7, () => {
-                        if (Math.abs(player.y - (player.y)) < 20) player.takeDamage(this.damage * 1.4);
-                        triggerScreenShake(4, 0.2);
+                } else if (rand < 0.8) {
+                    telegraphs.push(new Telegraph(50, GROUND_Y - 22, canvas.width - 100, 22, 0.8, () => {
+                        triggerScreenShake(7, 0.3);
+                        if (player.y + player.height >= GROUND_Y - 6) {
+                            player.takeDamage(this.damage * 1.3);
+                            player.stunTimer = 0.5;
+                        }
                     }));
                 } else {
-                    monsters.push(new Monster('imp', 'left'));
-                    floatingTexts.push(new FloatingText("🌀 환영 소환!", this.x, this.y - 15, '#e040fb'));
+                    createHitParticles(this.x + this.width/2, this.y + this.height/2, '#e040fb', 15);
+                    this.x = player.x > canvas.width / 2 ? 100 : canvas.width - 150;
+                    floatingTexts.push(new FloatingText("✨ 환영 이동 (활로 저격하세요!)", this.x, this.y - 15, '#e040fb'));
                 }
                 this.actionTimer = 0;
             }
@@ -1729,80 +1766,97 @@ class Boss {
         } else if (this.stage === 3) {
             if (this.ultCooldown <= 0) {
                 this.executeBoss3Ultimate();
-                this.ultCooldown = 18.0;
-            } else if (this.actionTimer >= 1.6) {
-                for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
-                    const bx = this.x + this.width/2 + Math.cos(a) * 20;
-                    const by = this.y + this.height/2 + Math.sin(a) * 20;
-                    projectiles.push(new MonsterBullet(bx, by, bx + Math.cos(a) * 100, by + Math.sin(a) * 100, 3.8, '#ff1744', 16));
+                this.ultCooldown = 14.0;
+            } else if (this.actionTimer >= 1.1) {
+                const rand = Math.random();
+                if (rand < 0.5) {
+                    projectiles.push(new Shockwave(this.x, GROUND_Y, 1, 20));
+                    projectiles.push(new Shockwave(this.x, GROUND_Y, -1, 20));
+                } else {
+                    for (let i = -3; i <= 3; i++) {
+                        projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 10, player.x + i * 35, player.y, 4.5, '#ff1744', 18));
+                    }
                 }
                 this.actionTimer = 0;
             } else {
-                this.x += dir * 2.2;
+                this.x += dir * 2.8;
             }
         }
+
+        // 보스 위치도 화면 밖으로 이탈하지 않도록 엄격히 클램프 적용
+        this.x = Math.max(20, Math.min(canvas.width - this.width - 20, this.x));
     }
 
     executeBoss1Ultimate() {
-        floatingTexts.push(new FloatingText("⚡ [필살기] 대지진 & 암석 폭격!", BASE_WIDTH/2, 100, '#ff1744'));
-        triggerScreenShake(8, 1.2);
-        monsters.push(new Monster('imp', 'left'));
-        monsters.push(new Monster('imp', 'right'));
+        floatingTexts.push(new FloatingText("⚡ [필살기] 대지진 충격파 폭풍!", canvas.width/2, 100, '#ff1744'));
+        triggerScreenShake(9, 1.2);
+        projectiles.push(new Shockwave(this.x, GROUND_Y, 1, 25));
+        projectiles.push(new Shockwave(this.x, GROUND_Y, -1, 25));
 
         for (let i = 0; i < 5; i++) {
             setTimeout(() => {
-                const rx = Math.random() * (BASE_WIDTH - 60) + 30;
-                telegraphs.push(new Telegraph(rx - 20, GROUND_Y - 10, 40, 10, 0.6, () => {
+                const rx = Math.random() * (canvas.width - 80) + 40;
+                telegraphs.push(new Telegraph(rx - 30, GROUND_Y - 14, 60, 14, 0.5, () => {
                     fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 28));
-                }));
-            }, i * 300);
-        }
-    }
-
-    executeBoss2Ultimate() {
-        floatingTexts.push(new FloatingText("☄️ [필살기] 메테오 스트라이크!", BASE_WIDTH/2, 100, '#ab47bc'));
-        this.x = BASE_WIDTH / 2 - this.width / 2;
-        monsters.push(new Monster('mage', 'left'));
-
-        for (let i = 0; i < 7; i++) {
-            setTimeout(() => {
-                const rx = Math.random() * (BASE_WIDTH - 80) + 40;
-                telegraphs.push(new Telegraph(rx - 25, GROUND_Y - 10, 50, 10, 0.7, () => {
-                    fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 35));
                 }));
             }, i * 250);
         }
     }
 
-    executeBoss3Ultimate() {
-        floatingTexts.push(new FloatingText("💥 [필살기] 카타클리즘 싱귤래리티!", BASE_WIDTH/2, 100, '#ff1744'));
-        triggerScreenShake(12, 1.5);
-        monsters.push(new Monster('orc', 'left'));
-        monsters.push(new Monster('mage', 'right'));
+    executeBoss2Ultimate() {
+        floatingTexts.push(new FloatingText("☄️ [필살기] 환영 메테오 대폭격!", canvas.width/2, 100, '#ab47bc'));
+        this.x = canvas.width / 2 - this.width / 2;
 
-        telegraphs.push(new Telegraph(100, 0, BASE_WIDTH - 200, BASE_HEIGHT, 1.2, () => {
-            player.takeDamage(45);
-            triggerScreenShake(15, 0.5);
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                const rx = Math.random() * (canvas.width - 80) + 40;
+                telegraphs.push(new Telegraph(rx - 30, GROUND_Y - 14, 60, 14, 0.5, () => {
+                    fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 32));
+                }));
+            }, i * 200);
+        }
+    }
+
+    executeBoss3Ultimate() {
+        floatingTexts.push(new FloatingText("💥 [필살기] 카오스 싱귤래리티 (전체 바닥 장판)!", canvas.width/2, 100, '#ff1744'));
+        triggerScreenShake(14, 1.5);
+
+        telegraphs.push(new Telegraph(30, GROUND_Y - 28, canvas.width - 60, 28, 1.1, () => {
+            if (player.y + player.height >= GROUND_Y - 6) {
+                player.takeDamage(45);
+                player.stunTimer = 0.6;
+                triggerScreenShake(16, 0.5);
+            }
         }));
     }
 
     draw() {
         ctx.save();
+        const isFacingRight = player.x > this.x;
         let renderY = this.y;
 
         if (this.isDying) {
             ctx.globalAlpha = Math.max(0, this.deathTimer / 1.0);
         }
 
-        const colors = { 
+        const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
+
+        let bossMap = BOSS_PIXEL_MAP_1;
+        let colors = { 
             1: '#212121', 2: '#d32f2f', 3: '#ff5252', 4: '#ffffff',
             5: '#000000', 6: '#ffd700', 7: '#37474f', 8: '#ff9800',
             9: '#b0bec5', 10: '#b71c1c', 11: '#4a148c'
         };
 
-        const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
-        const isFacingRight = player.x > this.x;
-        drawPixelGrid(ctx, this.x, renderY, this.pSize, BOSS_PIXEL_MAP, colors, !isFacingRight, overrideColor);
+        if (this.stage === 2) {
+            bossMap = BOSS_PIXEL_MAP_2;
+            colors = { 1: '#4a148c', 2: '#ab47bc', 3: '#ffffff', 4: '#e040fb', 5: '#7b1fa2', 6: '#ffd700', 7: '#311b92' };
+        } else if (this.stage === 3) {
+            bossMap = BOSS_PIXEL_MAP_3;
+            colors = { 1: '#b71c1c', 2: '#ff1744', 3: '#ffffff', 4: '#000000', 5: '#ffd700', 6: '#212121', 7: '#ff5722', 8: '#ffeb3b', 9: '#4e342e' };
+        }
+
+        drawPixelGrid(ctx, this.x, renderY, this.pSize, bossMap, colors, !isFacingRight, overrideColor);
         ctx.restore();
     }
 }
@@ -1863,8 +1917,7 @@ function onMobKilled() {
 
     mobsKilledInStage++;
     const req = stageMobsRequired[currentStage - 1];
-    const remaining = Math.max(0, req - mobsKilledInStage);
-    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (보스까지 남은 수: ${remaining})`;
+    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (${mobsKilledInStage}/${req})`;
 
     if (mobsKilledInStage >= req) {
         spawnBoss();
@@ -1876,8 +1929,7 @@ function spawnBoss() {
     monsters = [];
     currentBoss = new Boss(currentStage);
     document.getElementById('boss-hud').style.display = 'block';
-    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (보스 등장!)`;
-    floatingTexts.push(new FloatingText("⚠️ BOSS WARNING ⚠️", BASE_WIDTH/2, 140, '#ff1744'));
+    floatingTexts.push(new FloatingText("⚠️ BOSS WARNING (활로 저격하세요!)", canvas.width/2, 140, '#ff1744'));
     triggerScreenShake(8, 0.5);
 }
 
@@ -1886,18 +1938,11 @@ function onBossDefeated() {
     currentBoss = null;
     document.getElementById('boss-hud').style.display = 'none';
 
-    // 보스 처치 후 3번 연속 업그레이드 시작 설정
-    bossUpgradeRemaining = 3;
-    triggerLevelUpModal('🏆 BOSS CLEARED! (3회 업그레이드)', bossUpgradeRemaining);
-}
-
-function proceedNextStageOrVictory() {
     if (currentStage < 3) {
         currentStage++;
         mobsKilledInStage = 0;
-        const req = stageMobsRequired[currentStage - 1];
-        document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (보스까지 남은 수: ${req})`;
-        floatingTexts.push(new FloatingText(`🎉 STAGE ${currentStage} START!`, BASE_WIDTH/2, 140, '#00e676'));
+        document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (0/${stageMobsRequired[currentStage - 1]})`;
+        floatingTexts.push(new FloatingText(`🎉 STAGE ${currentStage} START!`, canvas.width/2, 140, '#00e676'));
     } else {
         gameState = 'VICTORY';
         document.getElementById('victory-screen').style.display = 'flex';
@@ -1932,18 +1977,18 @@ function checkCircleRectOverlap(circle, rect) {
 
 function drawBackground() {
     ctx.fillStyle = '#08080e';
-    ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.strokeStyle = '#12121a';
     ctx.lineWidth = 1;
     for (let y = 0; y < GROUND_Y; y += 35) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(BASE_WIDTH, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
 
     ctx.fillStyle = '#101018';
-    ctx.fillRect(0, GROUND_Y, BASE_WIDTH, BASE_HEIGHT - GROUND_Y);
+    ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
     ctx.fillStyle = '#00e676';
-    ctx.fillRect(0, GROUND_Y, BASE_WIDTH, 2);
+    ctx.fillRect(0, GROUND_Y, canvas.width, 2);
 }
 
 function gameLoop(timestamp) {
@@ -1986,20 +2031,20 @@ function gameLoop(timestamp) {
         telegraphs.forEach(t => t.draw());
         monsters.forEach(m => m.draw());
         if (currentBoss) currentBoss.draw();
-        player.draw();
         projectiles.forEach(p => p.draw());
         fallingMeteors.forEach(m => m.draw());
-        
+        player.draw();
+
         particles.forEach(p => {
             ctx.fillStyle = p.color;
             ctx.fillRect(p.x, p.y, 2, 2);
         });
         floatingTexts.forEach(ft => ft.draw());
-        
     } else if (gameState === 'LEVEL_UP' || gameState === 'PAUSED') {
         drawBackground();
         monsters.forEach(m => m.draw());
         if (currentBoss) currentBoss.draw();
+        projectiles.forEach(p => p.draw());
         player.draw();
     }
 
@@ -2030,13 +2075,12 @@ function startGame() {
     mobsKilledInStage = 0;
     bossActive = false;
     currentBoss = null;
-    bossUpgradeRemaining = 0;
     monsters = []; projectiles = []; particles = []; floatingTexts = []; telegraphs = []; fallingMeteors = [];
     spawnInterval = 3000;
     player.reset();
 
     document.getElementById('boss-hud').style.display = 'none';
-    document.getElementById('stage-hud-info').innerText = `STAGE 1 (보스까지 남은 수: ${stageMobsRequired[0]})`;
+    document.getElementById('stage-hud-info').innerText = `STAGE 1 (0/${stageMobsRequired[0]})`;
 
     startScreen.style.display = 'none';
     gameOverScreen.style.display = 'none';
@@ -2059,6 +2103,8 @@ function resumeGame() {
 
 function endGame() {
     gameState = 'GAMEOVER';
+    const req = stageMobsRequired[currentStage - 1];
+    document.getElementById('final-stage').innerText = `도달 스테이지: STAGE ${currentStage} (${mobsKilledInStage}/${req})`;
     document.getElementById('final-score').innerText = `처치한 몬스터: ${score} 마리`;
     document.getElementById('final-level').innerText = `최종 레벨: LV.${player.level}`;
     gameOverScreen.style.display = 'flex';
@@ -2110,9 +2156,10 @@ function renderStatusPanelUI() {
         }
 
         let valText = '';
-        if (def.id === 'hp') valText = `+${curLv * 20}`;
+        if (def.id === 'hp') valText = `+${curLv * 200}`;
+        else if (def.id === 'shield') valText = `-${curLv * 10}%`;
         else if (def.id === 'meleeDmg') valText = `+${curLv * 5}`;
-        else if (def.id === 'rangedDmg') valText = `+${curLv * 4}`;
+        else if (def.id === 'rangedDmg') valText = `+${curLv * 10}`;
         else if (def.id === 'chargeSpeed') valText = `${player.getChargeTime().toFixed(1)}s`;
         else if (def.id === 'attackSpeed') valText = `${player.getAttackCooldown().toFixed(2)}s`;
         else if (def.id === 'moveSpeed') valText = `+${curLv * 12}%`;
@@ -2129,45 +2176,50 @@ function renderStatusPanelUI() {
     });
 }
 
-function triggerLevelUpModal(titleText = '🎉 LEVEL UP!', remainingCount = 1) {
+function triggerLevelUpModal() {
     gameState = 'LEVEL_UP';
-    bossUpgradeRemaining = remainingCount;
-    document.getElementById('modal-levelup-header').innerText = titleText;
-
+    
     const available = UPGRADES_DEF.filter(u => player.upgrades[u.id] < u.max);
-    const choices = [...available].sort(() => 0.5 - Math.random()).slice(0, 3);
+    let choices = [...available].sort(() => 0.5 - Math.random()).slice(0, 2);
+
+    const healOption = { id: 'healOnly', name: '체력 회복', icon: '💖', desc: '현재 남은 체력 기준 절반(50%)을 회복합니다.' };
+    choices.push(healOption);
+    choices.sort(() => 0.5 - Math.random());
+
     const cardsContainer = document.getElementById('upgrade-cards-list');
     cardsContainer.innerHTML = '';
 
-    if (choices.length === 0) {
+    choices.forEach((opt, idx) => {
         const card = document.createElement('div');
         card.className = 'upgrade-card';
-        card.style.animationDelay = '0.1s';
-        card.innerHTML = `<div class="upgrade-icon">💖</div><div class="upgrade-info"><div class="upgrade-title">체력 회복</div><div class="upgrade-desc">체력을 모두 회복합니다.</div></div>`;
+        card.style.animationDelay = `${0.1 + idx * 0.12}s`;
+
+        let titleStr = opt.name;
+        if (opt.id !== 'healOnly') {
+            titleStr += ` (${player.upgrades[opt.id] + 1}/${opt.max})`;
+        }
+
+        card.innerHTML = `
+            <div class="upgrade-icon">${opt.icon}</div>
+            <div class="upgrade-info">
+                <div class="upgrade-title">${titleStr}</div>
+                <div class="upgrade-desc">${opt.desc}</div>
+            </div>
+        `;
+
         card.onclick = () => {
-            player.hp = player.maxHp; player.whiteHp = player.maxHp;
-            updatePlayerHpUI(); handleCardSelected();
+            if (opt.id === 'healOnly') {
+                const addHp = Math.round(player.hp * 0.5);
+                player.hp = Math.min(player.maxHp, player.hp + addHp);
+                player.whiteHp = player.hp;
+                updatePlayerHpUI();
+            } else {
+                applyUpgrade(opt.id);
+            }
+            closeLevelUpModal();
         };
         cardsContainer.appendChild(card);
-    } else {
-        choices.forEach((opt, idx) => {
-            const card = document.createElement('div');
-            card.className = 'upgrade-card';
-            card.style.animationDelay = `${0.1 + idx * 0.12}s`;
-            card.innerHTML = `
-                <div class="upgrade-icon">${opt.icon}</div>
-                <div class="upgrade-info">
-                    <div class="upgrade-title">${opt.name} (${player.upgrades[opt.id] + 1}/${opt.max})</div>
-                    <div class="upgrade-desc">${opt.desc}</div>
-                </div>
-            `;
-            card.onclick = () => {
-                applyUpgrade(opt.id);
-                handleCardSelected();
-            };
-            cardsContainer.appendChild(card);
-        });
-    }
+    });
 
     modalLevelUp.style.display = 'flex';
     requestAnimationFrame(() => {
@@ -2175,35 +2227,18 @@ function triggerLevelUpModal(titleText = '🎉 LEVEL UP!', remainingCount = 1) {
     });
 }
 
-function handleCardSelected() {
+function closeLevelUpModal() {
     modalLevelUp.classList.remove('active');
     modalLevelUp.style.display = 'none';
-
-    if (bossUpgradeRemaining > 1) {
-        bossUpgradeRemaining--;
-        const currentCount = 4 - bossUpgradeRemaining;
-        setTimeout(() => {
-            triggerLevelUpModal(`🏆 BOSS UPGRADE (${currentCount}/3)`, bossUpgradeRemaining);
-        }, 200);
-    } else {
-        const wasBossUpgrade = bossUpgradeRemaining === 1;
-        bossUpgradeRemaining = 0;
-        gameState = 'PLAYING';
-
-        if (wasBossUpgrade) {
-            proceedNextStageOrVictory();
-        }
-    }
-
-    if (gameState === 'LEVEL_UP') {
-        gameState = 'PLAYING';
-    }
+    gameState = 'PLAYING';
 }
 
 function applyUpgrade(id) {
     player.upgrades[id]++;
     if (id === 'hp') {
-        player.maxHp += 20; player.hp += 20; player.whiteHp += 20;
+        player.maxHp += 200;
+        player.hp = player.maxHp;
+        player.whiteHp = player.maxHp;
         updatePlayerHpUI();
     } else if (id === 'doubleJump') {
         player.maxJumps = 2;
@@ -2234,7 +2269,7 @@ document.querySelectorAll('.key-btn').forEach(btn => {
         if (currentlyBindingAction) return;
         currentlyBindingAction = btn.getAttribute('data-action');
         btn.classList.add('binding');
-        btn.innerText = '입력...선택';
+        btn.innerText = '입력...';
     });
 });
 
