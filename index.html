@@ -19,14 +19,18 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            width: 100vw;
+            height: 100vh;
             overflow: hidden;
         }
 
+        /* 전체 화면 반응형 게임 컨테이너 (16:9 비율 유지) */
         #game-container {
             position: relative;
-            width: 960px;
-            height: 540px;
+            width: 100vw;
+            height: 56.25vw; /* 16:9 비율 (960x540) */
+            max-height: 100vh;
+            max-width: 177.78vh; /* 16:9 비율 */
             background-color: #08080c;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(230, 0, 0, 0.2);
             border: 2px solid #3a1515;
@@ -1502,13 +1506,12 @@ class Monster {
 
             if (this.isBlocking) {
                 this.blockTimer -= dt;
-                this.x += dir * (this.speed * 0.6); // 방패를 든 채 전진
+                this.x += dir * (this.speed * 0.6);
                 if (this.blockTimer <= 0) this.isBlocking = false;
             } else {
                 this.x += dir * this.speed;
             }
 
-            // 오르크 스매시 공격 & 지면 충격파 발사!
             if (dist < 55 && this.smashCooldown <= 0) {
                 this.smashCooldown = 2.2;
                 player.stunTimer = 0.8;
@@ -1536,7 +1539,6 @@ class Monster {
 
             this.castTimer += dt;
             if (this.castTimer >= 1.6) {
-                // 마도사 3연사 탄환
                 for (let i = -1; i <= 1; i++) {
                     projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 8, player.x + player.width/2 + (i * 25), player.y + player.height/2));
                 }
@@ -1607,12 +1609,12 @@ class Boss {
         if (stage === 1) {
             this.name = "STAGE 1 BOSS : 광란의 블레이드 로드";
             this.maxHp = 1000;
-            this.damage = 18; // 일반 몹 대미지의 1.3배
+            this.damage = 18;
             this.color = '#ff3333';
         } else if (stage === 2) {
             this.name = "STAGE 2 BOSS : 환영의 마도사";
             this.maxHp = 2500;
-            this.damage = 22; // 일반 몹 대미지의 1.5배
+            this.damage = 22;
             this.color = '#ab47bc';
         } else {
             this.name = "FINAL BOSS : 종말의 카오스 디스트로이어";
@@ -1662,16 +1664,13 @@ class Boss {
 
         const dir = player.x > this.x ? 1 : -1;
 
-        // 보스 행동 패턴
         if (this.stage === 1) {
-            // 근거리 돌격형 보스
             if (this.ultCooldown <= 0) {
                 this.executeBoss1Ultimate();
                 this.ultCooldown = 15.0;
             } else if (this.actionTimer >= 2.2) {
                 const rand = Math.random();
                 if (rand < 0.4) {
-                    // 돌진 패턴 (Bull Charge)
                     telegraphs.push(new Telegraph(0, GROUND_Y - 40, canvas.width, 40, 0.8, () => {
                         this.x += dir * 280;
                         this.x = Math.max(20, Math.min(canvas.width - 70, this.x));
@@ -1679,13 +1678,11 @@ class Boss {
                         if (checkRectOverlap(this, player)) player.takeDamage(this.damage * 1.3);
                     }));
                 } else if (rand < 0.7) {
-                    // 3연속 근접 베기
                     if (Math.abs(player.x - this.x) < 90) {
                         player.takeDamage(this.damage);
                         createHitParticles(player.x, player.y, '#ff1744', 10);
                     }
                 } else {
-                    // 대지 분쇄
                     projectiles.push(new Shockwave(this.x, GROUND_Y, 1, 16));
                     projectiles.push(new Shockwave(this.x, GROUND_Y, -1, 16));
                 }
@@ -1695,25 +1692,21 @@ class Boss {
             }
 
         } else if (this.stage === 2) {
-            // 원거리 딜러 및 분신 보스
             if (this.ultCooldown <= 0) {
                 this.executeBoss2Ultimate();
                 this.ultCooldown = 16.0;
             } else if (this.actionTimer >= 2.0) {
                 const rand = Math.random();
                 if (rand < 0.3) {
-                    // 원거리 5연사 미사일
                     for (let i = -2; i <= 2; i++) {
                         projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 10, player.x + i * 30, player.y, 4.5, '#ab47bc', 14));
                     }
                 } else if (rand < 0.6) {
-                    // 메인 레이저
                     telegraphs.push(new Telegraph(0, player.y, canvas.width, 20, 0.7, () => {
                         if (Math.abs(player.y - (player.y)) < 20) player.takeDamage(this.damage * 1.4);
                         triggerScreenShake(4, 0.2);
                     }));
                 } else {
-                    // 몹 소환
                     monsters.push(new Monster('imp', 'left'));
                     floatingTexts.push(new FloatingText("🌀 환영 소환!", this.x, this.y - 15, '#e040fb'));
                 }
@@ -1721,12 +1714,10 @@ class Boss {
             }
 
         } else if (this.stage === 3) {
-            // 최종 보스
             if (this.ultCooldown <= 0) {
                 this.executeBoss3Ultimate();
                 this.ultCooldown = 18.0;
             } else if (this.actionTimer >= 1.6) {
-                // 방사형 16방향 탄막 + 광역 공격
                 for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
                     const bx = this.x + this.width/2 + Math.cos(a) * 20;
                     const by = this.y + this.height/2 + Math.sin(a) * 20;
@@ -1868,7 +1859,7 @@ function onMobKilled() {
 
 function spawnBoss() {
     bossActive = true;
-    monsters = []; // 기존 일반 몹 제거
+    monsters = [];
     currentBoss = new Boss(currentStage);
     document.getElementById('boss-hud').style.display = 'block';
     floatingTexts.push(new FloatingText("⚠️ BOSS WARNING ⚠️", canvas.width/2, 140, '#ff1744'));
@@ -1886,7 +1877,6 @@ function onBossDefeated() {
         document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (0/${stageMobsRequired[currentStage - 1]})`;
         floatingTexts.push(new FloatingText(`🎉 STAGE ${currentStage} START!`, canvas.width/2, 140, '#00e676'));
     } else {
-        // 게임 완전 승리!
         gameState = 'VICTORY';
         document.getElementById('victory-screen').style.display = 'flex';
     }
