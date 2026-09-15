@@ -24,13 +24,11 @@
             overflow: hidden;
         }
 
-        /* 전체 화면 반응형 게임 컨테이너 (16:9 비율 유지) */
+        /* 전체 화면 반응형 게임 컨테이너 (16:9 비율 유지 - 세로 기준 대응 수정) */
         #game-container {
             position: relative;
-            width: 100vw;
-            height: 56.25vw; /* 16:9 비율 (960x540) */
-            max-height: 100vh;
-            max-width: 177.78vh; /* 16:9 비율 */
+            width: min(100vw, 177.78vh);
+            height: min(56.25vw, 100vh);
             background-color: #08080c;
             box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(230, 0, 0, 0.2);
             border: 2px solid #3a1515;
