@@ -676,7 +676,7 @@ let gameState = 'TITLE';
 let score = 0;
 let lastTime = 0;
 let spawnTimer = 0;
-let spawnInterval = 3000;
+let spawnInterval = 2500;
 const GROUND_Y = 440;
 
 let currentStage = 1;
@@ -1421,17 +1421,17 @@ class Monster {
         this.patternTimer = 0;
 
         if (type === 'imp') {
-            this.maxHp = 22; this.speed = 2.8; this.damage = 8; this.xpValue = 6;
+            this.maxHp = 22; this.speed = 2.5; this.damage = 8; this.xpValue = 6;
             this.state = 'APPROACH';
             this.leapCooldown = 0;
         } else if (type === 'orc') {
-            this.maxHp = 60; this.speed = 1.3; this.damage = 14; this.xpValue = 14;
+            this.maxHp = 60; this.speed = 1.2; this.damage = 14; this.xpValue = 14;
             this.height = 40; this.width = 35; this.y = GROUND_Y - this.height;
             this.isBlocking = false;
             this.blockTimer = 0;
             this.smashCooldown = 1.0;
         } else if (type === 'mage') {
-            this.maxHp = 32; this.speed = 1.4; this.damage = 10; this.xpValue = 10;
+            this.maxHp = 32; this.speed = 1.3; this.damage = 10; this.xpValue = 10;
             this.castTimer = 0; this.teleportCooldown = 0;
         }
 
@@ -1496,7 +1496,6 @@ class Monster {
 
         if (this.hitStunTimer > 0) {
             this.hitStunTimer -= dt;
-            // 피격 중에도 화면 밖으로 나가지 않도록 클램프 적용
             this.x = Math.max(15, Math.min(canvas.width - this.width - 15, this.x));
             return;
         }
@@ -1577,7 +1576,6 @@ class Monster {
             }
         }
 
-        // 몬스터가 맵 양 끝을 벗어나지 못하도록 제한 (화면 안쪽으로 고정)
         this.x = Math.max(15, Math.min(canvas.width - this.width - 15, this.x));
     }
 
@@ -1783,7 +1781,6 @@ class Boss {
             }
         }
 
-        // 보스 위치도 화면 밖으로 이탈하지 않도록 엄격히 클램프 적용
         this.x = Math.max(20, Math.min(canvas.width - this.width - 20, this.x));
     }
 
@@ -1901,15 +1898,57 @@ function updateSpawns(dt) {
         spawnTimer = 0;
         if (spawnInterval > 1200) spawnInterval -= 20;
 
-        const side = Math.random() < 0.5 ? 'left' : 'right';
-        const rand = Math.random();
-        let type = 'imp';
-        if (rand < 0.4) type = 'imp';
-        else if (rand < 0.75) type = 'orc';
-        else type = 'mage';
+        // 한번에 여러 마리(2~3마리)가 무작위 좌우 방향으로 스폰되도록 수정
+        const spawnCount = Math.floor(Math.random() * 2) + 2;
+        for (let i = 0; i < spawnCount; i++) {
+            const side = Math.random() < 0.5 ? 'left' : 'right';
+            const rand = Math.random();
+            let type = 'imp';
+            if (rand < 0.4) type = 'imp';
+            else if (rand < 0.75) type = 'orc';
+            else type = 'mage';
 
-        monsters.push(new Monster(type, side));
+            const newMob = new Monster(type, side);
+            // 동시에 겹쳐 스폰되지 않도록 약간의 X좌표 오프셋 부여
+            newMob.x += (side === 'left' ? i * -35 : i * 35);
+            monsters.push(newMob);
+        }
     }
+}
+
+function resolveCollisions() {
+    // 1. 몬스터끼리 겹치지 않게 밀어내기
+    for (let i = 0; i < monsters.length; i++) {
+        for (let j = i + 1; j < monsters.length; j++) {
+            const m1 = monsters[i];
+            const m2 = monsters[j];
+            if (m1.isDying || m2.isDying) continue;
+
+            if (checkRectOverlap(m1, m2)) {
+                const overlap = (m1.x < m2.x) ? (m1.x + m1.width - m2.x) : (m2.x + m2.width - m1.x);
+                if (m1.x < m2.x) {
+                    m1.x -= overlap / 2;
+                    m2.x += overlap / 2;
+                } else {
+                    m1.x += overlap / 2;
+                    m2.x -= overlap / 2;
+                }
+            }
+        }
+    }
+
+    // 2. 몬스터와 플레이어 간 충돌 (플레이어 통과 방지)
+    monsters.forEach(m => {
+        if (!m.isDying && checkRectOverlap(player, m)) {
+            const playerCenter = player.x + player.width / 2;
+            const mobCenter = m.x + m.width / 2;
+            const pushDir = playerCenter < mobCenter ? -1 : 1;
+            
+            // 플레이어는 안쪽으로 밀려나고 몬스터도 반대편으로 살짝 밀려남
+            player.x += pushDir * 1.5;
+            m.x -= pushDir * 1.5;
+        }
+    });
 }
 
 function onMobKilled() {
@@ -2011,6 +2050,8 @@ function gameLoop(timestamp) {
         projectiles = projectiles.filter(p => p.active);
 
         monsters.forEach(m => m.update(dt));
+        resolveCollisions(); // 몬스터끼리 및 플레이어와의 겹침 방지 처리 실행
+
         monsters = monsters.filter(m => m.active);
 
         if (currentBoss) currentBoss.update(dt);
@@ -2076,7 +2117,7 @@ function startGame() {
     bossActive = false;
     currentBoss = null;
     monsters = []; projectiles = []; particles = []; floatingTexts = []; telegraphs = []; fallingMeteors = [];
-    spawnInterval = 3000;
+    spawnInterval = 2500;
     player.reset();
 
     document.getElementById('boss-hud').style.display = 'none';
@@ -2275,27 +2316,18 @@ document.querySelectorAll('.key-btn').forEach(btn => {
 
 function handleRebind(e) {
     if (!currentlyBindingAction) return;
-    e.preventDefault();
-    const action = currentlyBindingAction;
-    keyBindings[action] = e.code;
-
-    let displayLabel = e.code.replace('Key', '');
-    if (e.code === 'Space') displayLabel = 'Space';
-    if (e.code === 'Enter') displayLabel = 'Enter';
-
-    const btn = document.querySelector(`.key-btn[data-action="${action}"]`);
+    keyBindings[currentlyBindingAction] = e.code;
+    
+    const btn = document.querySelector(`.key-btn[data-action="${currentlyBindingAction}"]`);
     if (btn) {
         btn.classList.remove('binding');
-        btn.innerText = displayLabel;
+        btn.innerText = e.code.replace('Key', '').replace('Digit', '');
     }
     currentlyBindingAction = null;
+    e.preventDefault();
 }
 
-requestAnimationFrame((ts) => {
-    lastTime = ts;
-    drawBackground();
-    requestAnimationFrame(gameLoop);
-});
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
