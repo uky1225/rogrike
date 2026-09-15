@@ -12,21 +12,27 @@
             padding: 0;
         }
 
-        html, body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+        body {
             background-color: #040406;
             color: #e0e0e0;
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-        }
-
-        /* 레터박스 없이 모든 화면 비율에서 꽉 채우도록 수정된 게임 컨테이너 */
-        #game-container {
-            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 100vw;
             height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 전체 화면 반응형 게임 컨테이너 (16:9 비율 유지 - 세로 기준 대응 수정) */
+        #game-container {
+            position: relative;
+            width: min(100vw, 177.78vh);
+            height: min(56.25vw, 100vh);
             background-color: #08080c;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(230, 0, 0, 0.2);
+            border: 2px solid #3a1515;
+            border-radius: 6px;
             overflow: hidden;
         }
 
@@ -499,7 +505,7 @@
 <body>
 
 <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
 
     <!-- 인게임 UI -->
     <div id="in-game-ui" class="ui-overlay">
@@ -668,21 +674,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
-// 기준이 되는 가상 게임 해상도 설정 (이 해상도 기준으로 게임 내부 로직이 동작함)
-const BASE_WIDTH = 960;
-const BASE_HEIGHT = 540;
-let GROUND_Y = 440;
-
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    
-    // 화면 크기에 맞추어 바닥 위치를 동적으로 조정 (전체 높이 기준 하단에서 여백을 둠)
-    GROUND_Y = canvas.height - 100;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
 const keyBindings = { left: 'KeyA', right: 'KeyD', jump: 'Space', attack: 'Enter', swap: 'KeyQ' };
 const attackSettings = { autoAim: false };
 const keysPressed = {};
@@ -693,6 +684,7 @@ let score = 0;
 let lastTime = 0;
 let spawnTimer = 0;
 let spawnInterval = 3000;
+const GROUND_Y = 440;
 
 // 스테이지 관련 상태 변수
 let currentStage = 1;
@@ -897,7 +889,7 @@ const player = {
     getSpeed() { return this.baseSpeed * (1 + this.upgrades.moveSpeed * 0.12); },
 
     reset() {
-        this.x = canvas.width / 2; this.y = GROUND_Y - this.height;
+        this.x = 480; this.y = GROUND_Y - this.height;
         this.vx = 0; this.vy = 0;
         this.maxHp = 120; this.hp = 120; this.whiteHp = 120;
         this.level = 1; this.xp = 0; this.nextXp = 50;
@@ -1312,6 +1304,7 @@ class MonsterBullet {
     }
 }
 
+// 오르크 충격파
 class Shockwave {
     constructor(x, y, dir, damage = 12) {
         this.x = x; this.y = y; this.dir = dir;
@@ -1335,6 +1328,7 @@ class Shockwave {
     }
 }
 
+// 경고 장판 (Telegraph)
 class Telegraph {
     constructor(x, y, width, height, duration, onComplete) {
         this.x = x; this.y = y; this.width = width; this.height = height;
@@ -1360,6 +1354,7 @@ class Telegraph {
     }
 }
 
+// 보스 떨어진 Boulder/Meteor
 class FallingMeteor {
     constructor(x, targetY, damage = 25) {
         this.x = x; this.y = -40; this.targetY = targetY;
@@ -1594,6 +1589,7 @@ class Monster {
     }
 }
 
+// 대형 보스 클래스
 class Boss {
     constructor(stage) {
         this.stage = stage;
