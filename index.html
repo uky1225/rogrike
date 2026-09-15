@@ -12,28 +12,26 @@
             padding: 0;
         }
 
-        body {
-            background-color: #040406;
-            color: #e0e0e0;
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        html, body {
             width: 100vw;
             height: 100vh;
             overflow: hidden;
+            background-color: #040406;
+            color: #e0e0e0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
         }
 
-        /* 전체 화면 반응형 게임 컨테이너 (16:9 비율 유지 - 세로 기준 대응 수정) */
+        /* 레터박스 없이 화면 비율에 맞춰 꽉 채우며 내부 요소를 스케일링하기 위한 컨테이너 */
         #game-container {
-            position: relative;
-            width: min(100vw, 177.78vh);
-            height: min(56.25vw, 100vh);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 960px;
+            height: 540px;
+            transform: translate(-50%, -50%);
             background-color: #08080c;
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(230, 0, 0, 0.2);
-            border: 2px solid #3a1515;
-            border-radius: 6px;
             overflow: hidden;
+            transform-origin: center center;
         }
 
         canvas {
@@ -52,6 +50,7 @@
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
+            z-index: 20; /* UI가 캔버스 그래픽 위로 오도록 보장 */
         }
 
         /* 플레이어 상태창 */
@@ -130,6 +129,7 @@
             padding: 6px 12px;
             box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
             backdrop-filter: blur(4px);
+            z-index: 25;
         }
 
         .boss-name-title {
@@ -270,7 +270,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 10;
+            z-index: 30;
             pointer-events: auto;
             overflow-y: auto;
             padding: 30px 20px;
@@ -505,14 +505,14 @@
 <body>
 
 <div id="game-container">
-    <canvas id="gameCanvas" width="960" height="540"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
     <!-- 인게임 UI -->
     <div id="in-game-ui" class="ui-overlay">
         <div class="player-status-container">
             <div class="bar-label">
                 <span>HP</span>
-                <span id="player-hp-text">120 / 120</span>
+                <span id="player-hp-text">300 / 300</span>
             </div>
             <div class="bar-bg">
                 <div id="player-hp-white" class="hp-bar-white"></div>
@@ -529,7 +529,7 @@
         </div>
 
         <div class="stage-hud" id="stage-hud-info">
-            STAGE 1 (0/10)
+            STAGE 1 (보스까지 남은 수: 45)
         </div>
 
         <!-- 보스 전용 대형 HUD -->
@@ -632,7 +632,7 @@
     <!-- 레벨업 모달 -->
     <div class="modal" id="modal-levelup">
         <div class="modal-content">
-            <div class="modal-header">🎉 LEVEL UP!</div>
+            <div class="modal-header" id="modal-levelup-header">🎉 LEVEL UP!</div>
             <div class="modal-body">
                 <div class="upgrade-cards-container" id="upgrade-cards-list"></div>
             </div>
@@ -674,26 +674,45 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
+// 기준이 되는 고정 가상 게임 해상도 설정 (960 x 540)
+const BASE_WIDTH = 960;
+const BASE_HEIGHT = 540;
+let GROUND_Y = 440;
+
+function resizeCanvas() {
+    canvas.width = BASE_WIDTH;
+    canvas.height = BASE_HEIGHT;
+    
+    const container = document.getElementById('game-container');
+    const scaleX = window.innerWidth / BASE_WIDTH;
+    const scaleY = window.innerHeight / BASE_HEIGHT;
+    const scale = Math.max(scaleX, scaleY);
+    
+    container.style.width = `${BASE_WIDTH}px`;
+    container.style.height = `${BASE_HEIGHT}px`;
+    container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
 const keyBindings = { left: 'KeyA', right: 'KeyD', jump: 'Space', attack: 'Enter', swap: 'KeyQ' };
 const attackSettings = { autoAim: false };
 const keysPressed = {};
 let currentlyBindingAction = null;
 
-let gameState = 'TITLE'; // TITLE, PLAYING, PAUSED, LEVEL_UP, GAMEOVER, VICTORY
+let gameState = 'TITLE';
 let score = 0;
 let lastTime = 0;
 let spawnTimer = 0;
 let spawnInterval = 3000;
-const GROUND_Y = 440;
 
-// 스테이지 관련 상태 변수
 let currentStage = 1;
 let mobsKilledInStage = 0;
-let stageMobsRequired = [10, 15, 20]; // 각 스테이지별 보스 등장 필요 킬 수
+let stageMobsRequired = [45, 45, 45]; // 스테이지별 요구 처치 몬스터 수 45마리
 let bossActive = false;
 let currentBoss = null;
+let bossUpgradeRemaining = 0; // 보스 처치 후 남은 업그레이드 횟수
 
-// 화면 진동 효과
 let screenShakeTime = 0;
 let screenShakeIntensity = 0;
 
@@ -773,7 +792,6 @@ function drawPixelGrid(ctx, x, y, pSize, map, colorTable, flipX = false, overrid
     }
 }
 
-// 픽셀 비주얼 맵
 const PLAYER_PIXEL_MAP = [
     [0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0],
     [0,0,0,1,2,2,2,2,1,1,1,0,0,0,0,0],
@@ -873,7 +891,7 @@ const player = {
     vx: 0, vy: 0,
     baseSpeed: 4.8, jumpForce: -11.5,
     isGrounded: true, jumpsLeft: 1, maxJumps: 1,
-    hp: 120, maxHp: 120, whiteHp: 120,
+    hp: 300, maxHp: 300, whiteHp: 300,
     level: 1, xp: 0, nextXp: 50,
     facing: 1, weapon: 'sword',
     isAttackKeyDown: false, attackKeyPressedTime: 0,
@@ -889,9 +907,9 @@ const player = {
     getSpeed() { return this.baseSpeed * (1 + this.upgrades.moveSpeed * 0.12); },
 
     reset() {
-        this.x = 480; this.y = GROUND_Y - this.height;
+        this.x = BASE_WIDTH / 2; this.y = GROUND_Y - this.height;
         this.vx = 0; this.vy = 0;
-        this.maxHp = 120; this.hp = 120; this.whiteHp = 120;
+        this.maxHp = 300; this.hp = 300; this.whiteHp = 300;
         this.level = 1; this.xp = 0; this.nextXp = 50;
         this.weapon = 'sword'; this.facing = 1;
         this.swordCooldownTimer = 0; this.swordSwingTimer = 0;
@@ -943,7 +961,7 @@ const player = {
         }
 
         if (this.x < 10) this.x = 10;
-        if (this.x + this.width > canvas.width - 10) this.x = canvas.width - 10 - this.width;
+        if (this.x + this.width > BASE_WIDTH - 10) this.x = BASE_WIDTH - 10 - this.width;
 
         if (this.swordSwingTimer > 0) this.swordSwingTimer -= dt;
         if (this.swordCooldownTimer > 0) this.swordCooldownTimer -= dt;
@@ -966,8 +984,8 @@ const player = {
         this.applyAutoAim();
 
         const attackHitbox = {
-            x: this.facing === 1 ? this.x + this.width - 5 : this.x - 105,
-            y: this.y - 25, width: 110, height: this.height + 40
+            x: this.facing === 1 ? this.x + this.width - 6 : this.x - 70,
+            y: this.y - 4, width: 76, height: this.height + 8
         };
 
         monsters.forEach(m => {
@@ -1036,7 +1054,7 @@ const player = {
             this.xp -= this.nextXp;
             this.level++;
             this.nextXp = Math.floor(55 * Math.pow(1.3, this.level - 1));
-            triggerLevelUpModal();
+            triggerLevelUpModal('LEVEL UP!', 1);
         }
         updatePlayerXpUI();
     },
@@ -1106,8 +1124,8 @@ const player = {
                 ctx.translate(handX, handY);
 
                 ctx.beginPath();
-                const outerRadius = 64;
-                const innerRadius = 18;
+                const outerRadius = 65;
+                const innerRadius = 15;
 
                 ctx.arc(0, 0, outerRadius, startAngle, currentAngle, !isRight);
                 ctx.arc(0, 0, innerRadius, currentAngle, startAngle, isRight);
@@ -1241,7 +1259,7 @@ class PixelArrow {
             this.stuck = true;
         }
 
-        if (this.x < -20 || this.x > canvas.width + 20) this.active = false;
+        if (this.x < -20 || this.x > BASE_WIDTH + 20) this.active = false;
 
         let targets = [...monsters];
         if (currentBoss && !currentBoss.isDying) targets.push(currentBoss);
@@ -1290,7 +1308,7 @@ class MonsterBullet {
 
     update() {
         this.x += this.vx; this.y += this.vy;
-        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
+        if (this.x < 0 || this.x > BASE_WIDTH || this.y < 0 || this.y > BASE_HEIGHT) this.active = false;
 
         if (this.active && checkCircleRectOverlap(this, player)) {
             player.takeDamage(this.damage);
@@ -1304,7 +1322,6 @@ class MonsterBullet {
     }
 }
 
-// 오르크 충격파
 class Shockwave {
     constructor(x, y, dir, damage = 12) {
         this.x = x; this.y = y; this.dir = dir;
@@ -1314,7 +1331,7 @@ class Shockwave {
     }
     update(dt) {
         this.x += this.dir * this.speed;
-        if (this.x < 0 || this.x > canvas.width) this.active = false;
+        if (this.x < 0 || this.x > BASE_WIDTH) this.active = false;
 
         if (this.active && checkRectOverlap(this, player)) {
             player.takeDamage(this.damage);
@@ -1328,7 +1345,6 @@ class Shockwave {
     }
 }
 
-// 경고 장판 (Telegraph)
 class Telegraph {
     constructor(x, y, width, height, duration, onComplete) {
         this.x = x; this.y = y; this.width = width; this.height = height;
@@ -1345,16 +1361,16 @@ class Telegraph {
     }
     draw() {
         const ratio = 1 - (this.duration / this.maxDuration);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.25)';
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.18)';
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+        ctx.fillStyle = 'rgba(255, 50, 50, 0.45)';
         ctx.fillRect(this.x, this.y, this.width * ratio, this.height);
-        ctx.strokeStyle = '#ff0000';
+        ctx.strokeStyle = '#ff3333';
+        ctx.lineWidth = 1.5;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
     }
 }
 
-// 보스 떨어진 Boulder/Meteor
 class FallingMeteor {
     constructor(x, targetY, damage = 25) {
         this.x = x; this.y = -40; this.targetY = targetY;
@@ -1383,7 +1399,7 @@ class Monster {
     constructor(type, spawnSide) {
         this.type = type;
         this.width = 30; this.height = 36;
-        this.x = spawnSide === 'left' ? -this.width : canvas.width;
+        this.x = spawnSide === 'left' ? -this.width : BASE_WIDTH;
         this.y = GROUND_Y - this.height;
         this.vx = 0; this.vy = 0;
         this.active = true;
@@ -1510,7 +1526,7 @@ class Monster {
                 this.x += dir * this.speed;
             }
 
-            if (dist < 55 && this.smashCooldown <= 0) {
+            if (dist < 42 && this.smashCooldown <= 0) {
                 this.smashCooldown = 2.2;
                 player.stunTimer = 0.8;
                 player.takeDamage(this.damage);
@@ -1527,8 +1543,8 @@ class Monster {
 
             if (dist < 70 && this.teleportCooldown <= 0) {
                 createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ea80fc', 12);
-                this.x = player.x > canvas.width / 2 ? player.x - 220 : player.x + 220;
-                this.x = Math.max(30, Math.min(canvas.width - 60, this.x));
+                this.x = player.x > BASE_WIDTH / 2 ? player.x - 220 : player.x + 220;
+                this.x = Math.max(30, Math.min(BASE_WIDTH - 60, this.x));
                 this.teleportCooldown = 4.5;
                 floatingTexts.push(new FloatingText("✨ 순간이동", this.x + 10, this.y - 10, '#ea80fc'));
             }
@@ -1547,7 +1563,6 @@ class Monster {
 
     draw() {
         ctx.save();
-        const isFacingRight = player.x > this.x;
         let renderY = this.y - Math.abs(Math.sin(this.walkAnimTimer)) * 2;
 
         if (this.isDying) {
@@ -1556,6 +1571,7 @@ class Monster {
         }
 
         const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
+        const isFacingRight = player.x > this.x;
 
         if (this.type === 'imp') {
             const colors = { 1: '#d32f2f', 2: '#ff5252', 3: '#ffd700', 4: '#000000', 5: '#ff8a80', 6: '#78909c', 7: '#cfd8dc' };
@@ -1589,13 +1605,12 @@ class Monster {
     }
 }
 
-// 대형 보스 클래스
 class Boss {
     constructor(stage) {
         this.stage = stage;
         this.width = 50; this.height = 65;
         this.pSize = 3.8;
-        this.x = canvas.width / 2 - this.width / 2;
+        this.x = BASE_WIDTH / 2 - this.width / 2;
         this.y = GROUND_Y - this.height;
         this.active = true;
         this.isDying = false;
@@ -1669,14 +1684,14 @@ class Boss {
             } else if (this.actionTimer >= 2.2) {
                 const rand = Math.random();
                 if (rand < 0.4) {
-                    telegraphs.push(new Telegraph(0, GROUND_Y - 40, canvas.width, 40, 0.8, () => {
+                    telegraphs.push(new Telegraph(0, GROUND_Y - 40, BASE_WIDTH, 40, 0.8, () => {
                         this.x += dir * 280;
-                        this.x = Math.max(20, Math.min(canvas.width - 70, this.x));
+                        this.x = Math.max(20, Math.min(BASE_WIDTH - 70, this.x));
                         triggerScreenShake(6, 0.2);
                         if (checkRectOverlap(this, player)) player.takeDamage(this.damage * 1.3);
                     }));
                 } else if (rand < 0.7) {
-                    if (Math.abs(player.x - this.x) < 90) {
+                    if (Math.abs(player.x - this.x) < 65) {
                         player.takeDamage(this.damage);
                         createHitParticles(player.x, player.y, '#ff1744', 10);
                     }
@@ -1700,7 +1715,7 @@ class Boss {
                         projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 10, player.x + i * 30, player.y, 4.5, '#ab47bc', 14));
                     }
                 } else if (rand < 0.6) {
-                    telegraphs.push(new Telegraph(0, player.y, canvas.width, 20, 0.7, () => {
+                    telegraphs.push(new Telegraph(0, player.y, BASE_WIDTH, 20, 0.7, () => {
                         if (Math.abs(player.y - (player.y)) < 20) player.takeDamage(this.damage * 1.4);
                         triggerScreenShake(4, 0.2);
                     }));
@@ -1729,14 +1744,14 @@ class Boss {
     }
 
     executeBoss1Ultimate() {
-        floatingTexts.push(new FloatingText("⚡ [필살기] 대지진 & 암석 폭격!", canvas.width/2, 100, '#ff1744'));
+        floatingTexts.push(new FloatingText("⚡ [필살기] 대지진 & 암석 폭격!", BASE_WIDTH/2, 100, '#ff1744'));
         triggerScreenShake(8, 1.2);
         monsters.push(new Monster('imp', 'left'));
         monsters.push(new Monster('imp', 'right'));
 
         for (let i = 0; i < 5; i++) {
             setTimeout(() => {
-                const rx = Math.random() * (canvas.width - 60) + 30;
+                const rx = Math.random() * (BASE_WIDTH - 60) + 30;
                 telegraphs.push(new Telegraph(rx - 20, GROUND_Y - 10, 40, 10, 0.6, () => {
                     fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 28));
                 }));
@@ -1745,13 +1760,13 @@ class Boss {
     }
 
     executeBoss2Ultimate() {
-        floatingTexts.push(new FloatingText("☄️ [필살기] 메테오 스트라이크!", canvas.width/2, 100, '#ab47bc'));
-        this.x = canvas.width / 2 - this.width / 2;
+        floatingTexts.push(new FloatingText("☄️ [필살기] 메테오 스트라이크!", BASE_WIDTH/2, 100, '#ab47bc'));
+        this.x = BASE_WIDTH / 2 - this.width / 2;
         monsters.push(new Monster('mage', 'left'));
 
         for (let i = 0; i < 7; i++) {
             setTimeout(() => {
-                const rx = Math.random() * (canvas.width - 80) + 40;
+                const rx = Math.random() * (BASE_WIDTH - 80) + 40;
                 telegraphs.push(new Telegraph(rx - 25, GROUND_Y - 10, 50, 10, 0.7, () => {
                     fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 35));
                 }));
@@ -1760,12 +1775,12 @@ class Boss {
     }
 
     executeBoss3Ultimate() {
-        floatingTexts.push(new FloatingText("💥 [필살기] 카타클리즘 싱귤래리티!", canvas.width/2, 100, '#ff1744'));
+        floatingTexts.push(new FloatingText("💥 [필살기] 카타클리즘 싱귤래리티!", BASE_WIDTH/2, 100, '#ff1744'));
         triggerScreenShake(12, 1.5);
         monsters.push(new Monster('orc', 'left'));
         monsters.push(new Monster('mage', 'right'));
 
-        telegraphs.push(new Telegraph(100, 0, canvas.width - 200, canvas.height, 1.2, () => {
+        telegraphs.push(new Telegraph(100, 0, BASE_WIDTH - 200, BASE_HEIGHT, 1.2, () => {
             player.takeDamage(45);
             triggerScreenShake(15, 0.5);
         }));
@@ -1773,7 +1788,6 @@ class Boss {
 
     draw() {
         ctx.save();
-        const isFacingRight = player.x > this.x;
         let renderY = this.y;
 
         if (this.isDying) {
@@ -1787,6 +1801,7 @@ class Boss {
         };
 
         const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
+        const isFacingRight = player.x > this.x;
         drawPixelGrid(ctx, this.x, renderY, this.pSize, BOSS_PIXEL_MAP, colors, !isFacingRight, overrideColor);
         ctx.restore();
     }
@@ -1848,7 +1863,8 @@ function onMobKilled() {
 
     mobsKilledInStage++;
     const req = stageMobsRequired[currentStage - 1];
-    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (${mobsKilledInStage}/${req})`;
+    const remaining = Math.max(0, req - mobsKilledInStage);
+    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (보스까지 남은 수: ${remaining})`;
 
     if (mobsKilledInStage >= req) {
         spawnBoss();
@@ -1860,7 +1876,8 @@ function spawnBoss() {
     monsters = [];
     currentBoss = new Boss(currentStage);
     document.getElementById('boss-hud').style.display = 'block';
-    floatingTexts.push(new FloatingText("⚠️ BOSS WARNING ⚠️", canvas.width/2, 140, '#ff1744'));
+    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (보스 등장!)`;
+    floatingTexts.push(new FloatingText("⚠️ BOSS WARNING ⚠️", BASE_WIDTH/2, 140, '#ff1744'));
     triggerScreenShake(8, 0.5);
 }
 
@@ -1869,11 +1886,18 @@ function onBossDefeated() {
     currentBoss = null;
     document.getElementById('boss-hud').style.display = 'none';
 
+    // 보스 처치 후 3번 연속 업그레이드 시작 설정
+    bossUpgradeRemaining = 3;
+    triggerLevelUpModal('🏆 BOSS CLEARED! (3회 업그레이드)', bossUpgradeRemaining);
+}
+
+function proceedNextStageOrVictory() {
     if (currentStage < 3) {
         currentStage++;
         mobsKilledInStage = 0;
-        document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (0/${stageMobsRequired[currentStage - 1]})`;
-        floatingTexts.push(new FloatingText(`🎉 STAGE ${currentStage} START!`, canvas.width/2, 140, '#00e676'));
+        const req = stageMobsRequired[currentStage - 1];
+        document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (보스까지 남은 수: ${req})`;
+        floatingTexts.push(new FloatingText(`🎉 STAGE ${currentStage} START!`, BASE_WIDTH/2, 140, '#00e676'));
     } else {
         gameState = 'VICTORY';
         document.getElementById('victory-screen').style.display = 'flex';
@@ -1908,18 +1932,18 @@ function checkCircleRectOverlap(circle, rect) {
 
 function drawBackground() {
     ctx.fillStyle = '#08080e';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
     ctx.strokeStyle = '#12121a';
     ctx.lineWidth = 1;
     for (let y = 0; y < GROUND_Y; y += 35) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(BASE_WIDTH, y); ctx.stroke();
     }
 
     ctx.fillStyle = '#101018';
-    ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+    ctx.fillRect(0, GROUND_Y, BASE_WIDTH, BASE_HEIGHT - GROUND_Y);
     ctx.fillStyle = '#00e676';
-    ctx.fillRect(0, GROUND_Y, canvas.width, 2);
+    ctx.fillRect(0, GROUND_Y, BASE_WIDTH, 2);
 }
 
 function gameLoop(timestamp) {
@@ -1962,20 +1986,20 @@ function gameLoop(timestamp) {
         telegraphs.forEach(t => t.draw());
         monsters.forEach(m => m.draw());
         if (currentBoss) currentBoss.draw();
+        player.draw();
         projectiles.forEach(p => p.draw());
         fallingMeteors.forEach(m => m.draw());
-        player.draw();
-
+        
         particles.forEach(p => {
             ctx.fillStyle = p.color;
             ctx.fillRect(p.x, p.y, 2, 2);
         });
         floatingTexts.forEach(ft => ft.draw());
+        
     } else if (gameState === 'LEVEL_UP' || gameState === 'PAUSED') {
         drawBackground();
         monsters.forEach(m => m.draw());
         if (currentBoss) currentBoss.draw();
-        projectiles.forEach(p => p.draw());
         player.draw();
     }
 
@@ -2006,12 +2030,13 @@ function startGame() {
     mobsKilledInStage = 0;
     bossActive = false;
     currentBoss = null;
+    bossUpgradeRemaining = 0;
     monsters = []; projectiles = []; particles = []; floatingTexts = []; telegraphs = []; fallingMeteors = [];
     spawnInterval = 3000;
     player.reset();
 
     document.getElementById('boss-hud').style.display = 'none';
-    document.getElementById('stage-hud-info').innerText = `STAGE 1 (0/${stageMobsRequired[0]})`;
+    document.getElementById('stage-hud-info').innerText = `STAGE 1 (보스까지 남은 수: ${stageMobsRequired[0]})`;
 
     startScreen.style.display = 'none';
     gameOverScreen.style.display = 'none';
@@ -2104,8 +2129,11 @@ function renderStatusPanelUI() {
     });
 }
 
-function triggerLevelUpModal() {
+function triggerLevelUpModal(titleText = '🎉 LEVEL UP!', remainingCount = 1) {
     gameState = 'LEVEL_UP';
+    bossUpgradeRemaining = remainingCount;
+    document.getElementById('modal-levelup-header').innerText = titleText;
+
     const available = UPGRADES_DEF.filter(u => player.upgrades[u.id] < u.max);
     const choices = [...available].sort(() => 0.5 - Math.random()).slice(0, 3);
     const cardsContainer = document.getElementById('upgrade-cards-list');
@@ -2118,7 +2146,7 @@ function triggerLevelUpModal() {
         card.innerHTML = `<div class="upgrade-icon">💖</div><div class="upgrade-info"><div class="upgrade-title">체력 회복</div><div class="upgrade-desc">체력을 모두 회복합니다.</div></div>`;
         card.onclick = () => {
             player.hp = player.maxHp; player.whiteHp = player.maxHp;
-            updatePlayerHpUI(); closeLevelUpModal();
+            updatePlayerHpUI(); handleCardSelected();
         };
         cardsContainer.appendChild(card);
     } else {
@@ -2135,7 +2163,7 @@ function triggerLevelUpModal() {
             `;
             card.onclick = () => {
                 applyUpgrade(opt.id);
-                closeLevelUpModal();
+                handleCardSelected();
             };
             cardsContainer.appendChild(card);
         });
@@ -2147,10 +2175,29 @@ function triggerLevelUpModal() {
     });
 }
 
-function closeLevelUpModal() {
+function handleCardSelected() {
     modalLevelUp.classList.remove('active');
     modalLevelUp.style.display = 'none';
-    gameState = 'PLAYING';
+
+    if (bossUpgradeRemaining > 1) {
+        bossUpgradeRemaining--;
+        const currentCount = 4 - bossUpgradeRemaining;
+        setTimeout(() => {
+            triggerLevelUpModal(`🏆 BOSS UPGRADE (${currentCount}/3)`, bossUpgradeRemaining);
+        }, 200);
+    } else {
+        const wasBossUpgrade = bossUpgradeRemaining === 1;
+        bossUpgradeRemaining = 0;
+        gameState = 'PLAYING';
+
+        if (wasBossUpgrade) {
+            proceedNextStageOrVictory();
+        }
+    }
+
+    if (gameState === 'LEVEL_UP') {
+        gameState = 'PLAYING';
+    }
 }
 
 function applyUpgrade(id) {
@@ -2187,7 +2234,7 @@ document.querySelectorAll('.key-btn').forEach(btn => {
         if (currentlyBindingAction) return;
         currentlyBindingAction = btn.getAttribute('data-action');
         btn.classList.add('binding');
-        btn.innerText = '입력...';
+        btn.innerText = '입력...선택';
     });
 });
 
