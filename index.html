@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그라이크 - 픽셀 아크 : 보스 레이드</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #040406;
+            color: #e0e0e0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            position: relative;
+            width: 960px;
+            height: 540px;
+            background-color: #08080c;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.95), 0 0 20px rgba(230, 0, 0, 0.2);
+            border: 2px solid #3a1515;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(20, 5, 5, 0.8); }
+        ::-webkit-scrollbar-thumb { background: #ff4d4d; border-radius: 3px; }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        /* 플레이어 상태창 */
+        .player-status-container {
+            position: absolute;
+            top: 10px; left: 10px;
+            width: 165px;
+            background: rgba(8, 8, 14, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 6px 8px;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+
+        .bar-label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #cfd8dc;
+            margin-bottom: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bar-bg {
+            position: relative;
+            width: 100%; height: 7px;
+            background: #0d0d14;
+            border: 1px solid #1a1a26;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .hp-bar-white {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            background: #ffffff; width: 100%;
+            transition: width 0.25s ease-out;
+        }
+
+        .hp-bar-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            background: linear-gradient(90deg, #d32f2f, #ff5252);
+            width: 100%;
+            transition: width 0.1s ease-out;
+        }
+
+        .xp-bar-bg {
+            position: relative;
+            width: 100%; height: 6px;
+            background: #08120a;
+            border: 1px solid #102415;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .xp-bar-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            background: linear-gradient(90deg, #00b0ff, #00e676);
+            width: 0%;
+            transition: width 0.2s ease-out;
+        }
+
+        /* 보스 HUD */
+        #boss-hud {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 460px;
+            background: rgba(15, 3, 3, 0.9);
+            border: 1.5px solid #ff3333;
+            border-radius: 6px;
+            padding: 6px 12px;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .boss-name-title {
+            font-size: 11px;
+            font-weight: 900;
+            color: #ff5252;
+            text-align: center;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 6px rgba(255, 0, 0, 0.8);
+        }
+
+        .boss-hp-bg {
+            position: relative;
+            width: 100%; height: 12px;
+            background: #100505;
+            border: 1px solid #400a0a;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .boss-hp-fill {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            background: linear-gradient(90deg, #b71c1c, #ff1744);
+            width: 100%;
+            transition: width 0.08s ease-out;
+        }
+
+        .boss-hp-white {
+            position: absolute; top: 0; left: 0; bottom: 0;
+            background: #ffffff; width: 100%;
+            transition: width 0.3s ease-out;
+        }
+
+        .boss-hp-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        /* 스테이지 가이드 HUD */
+        .stage-hud {
+            position: absolute;
+            top: 10px;
+            left: 185px;
+            background: rgba(8, 8, 14, 0.85);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #ffd700;
+            backdrop-filter: blur(4px);
+        }
+
+        .level-status-panel {
+            position: absolute;
+            top: 10px; right: 10px;
+            width: 165px;
+            background: rgba(8, 8, 14, 0.85);
+            border: 1px solid rgba(0, 230, 118, 0.35);
+            border-radius: 6px;
+            pointer-events: auto;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+        }
+
+        .status-panel-header {
+            background: rgba(16, 20, 29, 0.9);
+            padding: 5px 8px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #00e676;
+            border-bottom: 1px solid rgba(0, 230, 118, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .status-panel-body {
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .status-panel-body.minimized { display: none; }
+
+        .status-item {
+            display: grid;
+            grid-template-columns: 52px 52px 1fr;
+            align-items: center;
+            font-size: 9px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 2px 5px;
+            border-radius: 3px;
+            gap: 2px;
+        }
+
+        .status-name { color: #b0bec5; text-align: left; font-weight: 600; }
+        .status-grid { font-family: monospace; letter-spacing: 0.5px; color: #00e676; font-size: 8px; text-align: left; }
+        .status-val { color: #ffd700; font-weight: bold; font-family: monospace; font-size: 9px; text-align: right; }
+
+        .weapon-hud {
+            position: absolute;
+            bottom: 12px; left: 50%;
+            transform: translateX(-50%);
+            background: rgba(8, 8, 14, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 14px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+        }
+        .weapon-active {
+            color: #ffd700; font-weight: bold;
+            text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+        }
+
+        /* 로비 화면 */
+        #start-screen {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, #1a0000 0%, #3d0505 50%, #600a0a 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            pointer-events: auto;
+            overflow-y: auto;
+            padding: 30px 20px;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes titleBlink {
+            0%, 100% { opacity: 1; text-shadow: 0 0 25px rgba(255, 50, 50, 0.9), 0 0 10px #ff0000; }
+            50% { opacity: 0.45; text-shadow: 0 0 5px rgba(128, 0, 0, 0.4); }
+        }
+
+        .game-title {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ff3333;
+            letter-spacing: -1px;
+            margin-bottom: 2px;
+            text-align: center;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards 0.2s, titleBlink 1.5s infinite ease-in-out 1.0s;
+        }
+
+        .game-subtitle {
+            font-size: 13px;
+            color: #ffaaaa;
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease-out forwards 0.4s;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 190px;
+        }
+
+        .menu-buttons .btn:nth-child(1) { opacity: 0; animation: fadeInUp 0.6s ease-out forwards 0.6s; }
+        .menu-buttons .btn:nth-child(2) { opacity: 0; animation: fadeInUp 0.6s ease-out forwards 0.8s; }
+        .menu-buttons .btn:nth-child(3) { opacity: 0; animation: fadeInUp 0.6s ease-out forwards 1.0s; }
+
+        .btn {
+            background: #400a0a;
+            color: #f0d0d0;
+            border: 1px solid #771e1e;
+            padding: 9px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        .btn:hover {
+            background: #661010;
+            border-color: #ff4d4d;
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(255, 77, 77, 0.4);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #800c0c, #cc1111);
+            border-color: #ff6666;
+            color: #ffffff;
+        }
+        .btn-start:hover {
+            background: linear-gradient(135deg, #a01010, #ff2222);
+            color: #ffffff;
+            box-shadow: 0 0 18px rgba(255, 51, 51, 0.6);
+        }
+
+        #in-game-ui {
+            display: none;
+            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+        }
+
+        .modal {
+            display: none;
+            position: absolute; inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            justify-content: center; align-items: center;
+            pointer-events: auto;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: #200505;
+            border: 1px solid #771e1e;
+            width: 440px; max-width: 100%; max-height: 85vh;
+            border-radius: 6px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.4);
+        }
+
+        .modal-header {
+            flex-shrink: 0;
+            background: #330808;
+            padding: 10px 14px;
+            border-bottom: 1px solid #4a1010;
+            font-size: 14px; font-weight: bold;
+            color: #ff4d4d; text-align: center;
+        }
+
+        .modal-body {
+            flex: 1; overflow-y: auto;
+            padding: 14px 16px;
+            font-size: 11px; line-height: 1.6; color: #ddd;
+        }
+
+        .modal-footer {
+            flex-shrink: 0; background: #330808;
+            padding: 10px 14px; border-top: 1px solid #4a1010;
+            display: flex; justify-content: center;
+        }
+        .modal-footer .btn { width: 100%; max-width: 180px; }
+
+        #modal-settings .modal-body {
+            display: flex; flex-direction: column; align-items: center;
+        }
+        #modal-settings .settings-section {
+            width: 100%; max-width: 280px; margin-bottom: 12px;
+        }
+        .setting-section-title {
+            font-weight: bold; color: #ffd700;
+            margin-bottom: 8px; text-align: center; font-size: 12px;
+        }
+
+        .setting-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 6px; background: #2c0909;
+            padding: 6px 12px; border-radius: 4px;
+            border: 1px solid #441212;
+        }
+
+        .key-btn {
+            background: #4a1010; color: #ff8888;
+            border: 1px solid #772222; padding: 3px 10px;
+            border-radius: 3px; min-width: 70px; text-align: center;
+            cursor: pointer; font-family: monospace; font-size: 11px;
+            transition: all 0.15s ease;
+        }
+        .key-btn:hover { border-color: #ff4d4d; background: #661414; color: #ffffff; }
+        .key-btn.binding { background: #ff9800; color: #fff; border-color: #ffb74d; animation: titleBlink 0.8s infinite; }
+
+        .select-input {
+            background: #4a1010; color: #fff;
+            border: 1px solid #772222; padding: 3px 6px;
+            border-radius: 3px; cursor: pointer; font-size: 11px; outline: none;
+        }
+        .select-input:hover { border-color: #ff4d4d; }
+
+        .help-section {
+            margin-bottom: 12px; background: #2c0909;
+            border: 1px solid #441212; border-radius: 4px; padding: 8px 10px;
+        }
+        .help-title {
+            font-size: 12px; font-weight: bold; color: #ffd700;
+            margin-bottom: 4px; display: flex; align-items: center; gap: 4px;
+        }
+        .help-desc { color: #cccccc; font-size: 11px; }
+
+        #modal-levelup .modal-content {
+            border-color: #00e676; background: #10101a;
+            box-shadow: 0 0 25px rgba(0, 230, 118, 0.4);
+            opacity: 0; transform: translateY(60px);
+        }
+        #modal-levelup .modal-header { background: #161624; border-color: #262638; color: #00e676; }
+        #modal-levelup .modal-footer { background: #161624; border-color: #262638; }
+
+        #modal-levelup.active .modal-content {
+            animation: modalSlideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes modalSlideUp {
+            from { opacity: 0; transform: translateY(60px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .upgrade-cards-container { display: flex; flex-direction: column; gap: 8px; }
+
+        .upgrade-card {
+            background: #141422; border: 1px solid #2a2a40;
+            border-radius: 5px; padding: 10px 12px;
+            cursor: pointer; transition: all 0.15s ease;
+            display: flex; align-items: center; gap: 10px;
+            opacity: 0; transform: translateX(-30px);
+        }
+
+        #modal-levelup.active .upgrade-card {
+            animation: cardSlideInLeft 0.35s ease-out forwards;
+        }
+
+        @keyframes cardSlideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .upgrade-card:hover {
+            background: #1c1c30; border-color: #00e676;
+            transform: translateX(4px) !important;
+            box-shadow: 0 0 12px rgba(0, 230, 118, 0.2);
+        }
+        .upgrade-icon { font-size: 20px; width: 28px; text-align: center; }
+        .upgrade-info { flex-grow: 1; }
+        .upgrade-title { font-size: 12px; font-weight: bold; color: #ffd700; }
+        .upgrade-desc { font-size: 10px; color: #aaa; }
+
+        #game-over-screen, #victory-screen {
+            display: none; position: absolute; inset: 0;
+            background: rgba(8, 3, 3, 0.94); z-index: 50;
+            flex-direction: column; justify-content: center; align-items: center;
+            pointer-events: auto;
+        }
+
+        #modal-pause .modal-content {
+            width: 300px; border-color: #ffd700;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+        }
+        #modal-pause .modal-header { color: #ffd700; background: #261f08; border-color: #4a3e10; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+    <!-- 인게임 UI -->
+    <div id="in-game-ui" class="ui-overlay">
+        <div class="player-status-container">
+            <div class="bar-label">
+                <span>HP</span>
+                <span id="player-hp-text">120 / 120</span>
+            </div>
+            <div class="bar-bg">
+                <div id="player-hp-white" class="hp-bar-white"></div>
+                <div id="player-hp-fill" class="hp-bar-fill"></div>
+            </div>
+
+            <div class="bar-label">
+                <span id="player-level-text" style="color: #00e676;">LV. 1</span>
+                <span id="player-xp-text" style="color: #aaa;">0 / 50 XP</span>
+            </div>
+            <div class="xp-bar-bg">
+                <div id="player-xp-fill" class="xp-bar-fill"></div>
+            </div>
+        </div>
+
+        <div class="stage-hud" id="stage-hud-info">
+            STAGE 1 (0/10)
+        </div>
+
+        <!-- 보스 전용 대형 HUD -->
+        <div id="boss-hud">
+            <div class="boss-name-title" id="boss-name-text">STAGE 1 BOSS</div>
+            <div class="boss-hp-bg">
+                <div id="boss-hp-white" class="boss-hp-white"></div>
+                <div id="boss-hp-fill" class="boss-hp-fill"></div>
+                <div id="boss-hp-text" class="boss-hp-text">1000 / 1000</div>
+            </div>
+        </div>
+
+        <div class="level-status-panel">
+            <div class="status-panel-header" id="status-panel-header">
+                <span>STAT STATUS <span id="panel-toggle-icon">▼</span></span>
+                <span id="panel-level-badge" style="color: #00e676;">LV.1</span>
+            </div>
+            <div class="status-panel-body" id="status-panel-list"></div>
+        </div>
+
+        <div class="weapon-hud">
+            <span>[Q]:</span>
+            <span id="weapon-sword-status" class="weapon-active">⚔️ 칼</span>
+            <span>|</span>
+            <span id="weapon-bow-status">🏹 장궁</span>
+            <span style="margin-left:8px; color:#888;">[ESC]: 일시정지</span>
+        </div>
+    </div>
+
+    <!-- 로비 화면 -->
+    <div id="start-screen">
+        <h1 class="game-title">로그라이크</h1>
+        <p class="game-subtitle">2D PIXEL ROGUELIKE BOSS RAID</p>
+        
+        <div class="menu-buttons">
+            <button class="btn btn-start" id="btn-start-game">게임 시작</button>
+            <button class="btn" id="btn-lobby-settings">설정</button>
+            <button class="btn" id="btn-help">게임 설명</button>
+        </div>
+    </div>
+
+    <!-- 게임 오버 화면 -->
+    <div id="game-over-screen">
+        <h1 style="font-size: 36px; color: #ff3333; margin-bottom: 6px;">GAME OVER</h1>
+        <p id="final-score" style="font-size: 13px; color: #ccc; margin-bottom: 4px;">처치한 몬스터: 0</p>
+        <p id="final-level" style="font-size: 12px; color: #00e676; margin-bottom: 16px;">최종 레벨: LV.1</p>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-start" id="btn-restart">다시 시작 (Enter)</button>
+            <button class="btn" id="btn-home">홈으로 (ESC)</button>
+        </div>
+    </div>
+
+    <!-- 승리 화면 -->
+    <div id="victory-screen">
+        <h1 style="font-size: 40px; color: #ffd700; margin-bottom: 6px; text-shadow: 0 0 20px #ffb74d;">🏆 ALL STAGES CLEARED!</h1>
+        <p style="font-size: 14px; color: #fff; margin-bottom: 16px;">모든 보스를 물리치고 아레나의 최고 정점에 올랐습니다!</p>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-start" id="btn-victory-restart">다시 도전 (Enter)</button>
+            <button class="btn" id="btn-victory-home">홈으로 (ESC)</button>
+        </div>
+    </div>
+
+    <!-- 일시정지 모달 -->
+    <div class="modal" id="modal-pause">
+        <div class="modal-content">
+            <div class="modal-header">⏸️ 게임 일시 정지</div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 20px 16px;">
+                <button class="btn btn-start" id="btn-resume" style="width: 100%;">이어서 하기 (ESC)</button>
+                <button class="btn" id="btn-pause-exit" style="width: 100%;">게임 나가기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 도움말 모달 -->
+    <div class="modal" id="modal-help">
+        <div class="modal-content">
+            <div class="modal-header">📖 상세 게임 설명 & 조작 가이드</div>
+            <div class="modal-body">
+                <div class="help-section">
+                    <div class="help-title">🕹️ 기본 조작법</div>
+                    <div class="help-desc">
+                        • <b>A / D:</b> 좌/우 이동 | <b>Space:</b> 점프 / 2단점프(업그레이드 시)<br>
+                        • <b>Enter:</b> 공격 (칼 휘두르기 / 활 차징 사격)<br>
+                        • <b>Q:</b> 무기 교체 (칼 ↔ 활)<br>
+                        • <b>ESC:</b> 게임 일시정지
+                    </div>
+                </div>
+                <div class="help-section">
+                    <div class="help-title">👹 보스 레이드 시스템</div>
+                    <div class="help-desc">
+                        • 일반 몹을 지정 수만큼 처치하면 **각 스테이지의 대형 보스**가 등장합니다.<br>
+                        • 보스는 강력한 필살기와 소환 패턴, 공격 경고 장판(붉은 구역)을 보유하고 있습니다.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn" id="btn-close-help">닫기</button></div>
+        </div>
+    </div>
+
+    <!-- 레벨업 모달 -->
+    <div class="modal" id="modal-levelup">
+        <div class="modal-content">
+            <div class="modal-header">🎉 LEVEL UP!</div>
+            <div class="modal-body">
+                <div class="upgrade-cards-container" id="upgrade-cards-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div class="modal" id="modal-settings">
+        <div class="modal-content">
+            <div class="modal-header">⚙️ 게임 설정</div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <div class="setting-section-title">🎮 조작 키 설정</div>
+                    <div class="setting-row"><span>왼쪽 이동</span><button class="key-btn" data-action="left">A</button></div>
+                    <div class="setting-row"><span>오른쪽 이동</span><button class="key-btn" data-action="right">D</button></div>
+                    <div class="setting-row"><span>점프</span><button class="key-btn" data-action="jump">Space</button></div>
+                    <div class="setting-row"><span>공격 / 차징</span><button class="key-btn" data-action="attack">Enter</button></div>
+                    <div class="setting-row"><span>무기 교체</span><button class="key-btn" data-action="swap">Q</button></div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="setting-section-title">⚔️ 자동 조준 시스템</div>
+                    <div class="setting-row">
+                        <span>자동 조준</span>
+                        <select id="select-auto-aim" class="select-input">
+                            <option value="off">OFF (이동 방향)</option>
+                            <option value="on">ON (근접 적)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn" id="btn-close-settings">저장 및 나가기</button></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const keyBindings = { left: 'KeyA', right: 'KeyD', jump: 'Space', attack: 'Enter', swap: 'KeyQ' };
+const attackSettings = { autoAim: false };
+const keysPressed = {};
+let currentlyBindingAction = null;
+
+let gameState = 'TITLE'; // TITLE, PLAYING, PAUSED, LEVEL_UP, GAMEOVER, VICTORY
+let score = 0;
+let lastTime = 0;
+let spawnTimer = 0;
+let spawnInterval = 3000;
+const GROUND_Y = 440;
+
+// 스테이지 관련 상태 변수
+let currentStage = 1;
+let mobsKilledInStage = 0;
+let stageMobsRequired = [10, 15, 20]; // 각 스테이지별 보스 등장 필요 킬 수
+let bossActive = false;
+let currentBoss = null;
+
+// 화면 진동 효과
+let screenShakeTime = 0;
+let screenShakeIntensity = 0;
+
+function triggerScreenShake(intensity, duration) {
+    screenShakeIntensity = intensity;
+    screenShakeTime = duration;
+}
+
+window.addEventListener('keydown', (e) => {
+    if (currentlyBindingAction) { handleRebind(e); return; }
+
+    if (e.code === 'Escape') {
+        if (gameState === 'PLAYING') {
+            pauseGame();
+            return;
+        } else if (gameState === 'PAUSED') {
+            resumeGame();
+            return;
+        } else {
+            modalHelp.style.display = 'none';
+            modalSettings.style.display = 'none';
+        }
+    }
+
+    if (gameState === 'TITLE' && modalHelp.style.display !== 'flex' && modalSettings.style.display !== 'flex') {
+        if (e.code === 'Enter' || e.code === 'Space') {
+            e.preventDefault();
+            startGame();
+            return;
+        }
+    }
+
+    if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+        if (e.code === 'Enter') startGame();
+        if (e.code === 'Escape') goHome();
+        return;
+    }
+
+    keysPressed[e.code] = true;
+
+    if (e.code === keyBindings.attack && gameState === 'PLAYING') {
+        if (!player.isAttackKeyDown) {
+            player.isAttackKeyDown = true;
+            player.attackKeyPressedTime = Date.now();
+            player.tryPerformMeleeAttack();
+        }
+    }
+    if (e.code === keyBindings.swap && gameState === 'PLAYING') player.swapWeapon();
+    if (e.code === keyBindings.jump && gameState === 'PLAYING') player.jump();
+    if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+});
+
+window.addEventListener('keyup', (e) => {
+    keysPressed[e.code] = false;
+    if (e.code === keyBindings.attack && gameState === 'PLAYING') {
+        if (player.weapon === 'bow') player.releaseBowAttack();
+        player.isAttackKeyDown = false;
+    }
+});
+
+function drawPixelGrid(ctx, x, y, pSize, map, colorTable, flipX = false, overrideColor = null) {
+    const rows = map.length;
+    const cols = map[0].length;
+    const px = Math.round(x);
+    const py = Math.round(y);
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const val = map[r][c];
+            if (val === 0) continue;
+            const color = overrideColor || colorTable[val];
+            if (!color) continue;
+            const drawC = flipX ? (cols - 1 - c) : c;
+            ctx.fillStyle = color;
+            ctx.fillRect(px + drawC * pSize, py + r * pSize, pSize + 0.3, pSize + 0.3);
+        }
+    }
+}
+
+// 픽셀 비주얼 맵
+const PLAYER_PIXEL_MAP = [
+    [0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0],
+    [0,0,0,1,2,2,2,2,1,1,1,0,0,0,0,0],
+    [0,0,1,2,2,2,2,2,2,1,1,1,0,0,0,0], 
+    [0,0,1,1,3,3,3,3,3,3,1,1,0,0,0,0],
+    [0,0,0,1,3,5,6,3,5,6,3,1,0,0,0,0],
+    [0,0,0,3,3,3,4,3,3,3,4,3,0,0,0,0],
+    [0,0,0,0,3,3,3,3,3,3,4,0,0,0,0,0],
+    [0,0,9,9,10,7,7,7,7,10,9,9,0,0,0,0],
+    [0,9,9,9,10,7,7,8,7,10,9,9,9,0,0,0],
+    [0,9,9,9,10,8,7,8,8,10,9,9,9,0,0,0], 
+    [0,0,3,9,10,8,8,8,8,10,9,3,0,0,0,0],
+    [0,0,0,12,12,11,11,12,12,12,0,0,0,0,0],
+    [0,0,0,7,8,8,8,8,8,7,0,0,0,0,0],
+    [0,0,0,13,13,13,0,13,13,13,0,0,0,0],
+    [0,0,0,13,13,13,0,13,13,13,0,0,0,0],
+    [0,0,0,13,13,13,0,13,13,13,0,0,0,0],
+    [0,0,14,14,14,14,0,14,14,14,14,0,0],
+    [0,0,14,14,14,14,0,14,14,14,14,0,0],
+    [0,0,15,15,15,15,0,15,15,15,15,0,0]
+];
+
+const IMP_PIXEL_MAP = [
+    [1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,0,0,0,0,0,0,0,1,1],
+    [0,1,1,2,2,2,2,2,1,1,0],
+    [0,2,2,3,4,2,3,4,2,2,0],
+    [0,2,2,2,2,2,2,2,2,2,0],
+    [0,0,2,5,5,5,5,5,2,0,0],
+    [0,0,2,2,2,2,2,2,2,6,7],
+    [0,0,2,2,2,2,2,2,2,6,7],
+    [0,0,0,2,2,2,2,2,0,0,7],
+    [0,0,2,2,0,0,0,2,2,0,0],
+    [0,2,2,0,0,0,0,0,2,2,0]
+];
+
+const MAGE_PIXEL_MAP = [
+    [0,0,0,1,1,1,1,0,0,0,7],
+    [0,0,1,1,1,1,1,1,0,7,8],
+    [0,1,1,1,1,1,1,1,1,0,7],
+    [1,1,2,3,1,1,2,3,1,0,7],
+    [1,1,1,1,1,1,1,1,1,0,7],
+    [0,1,1,4,4,4,4,1,1,0,7],
+    [0,0,1,1,1,1,1,1,0,0,7],
+    [0,1,1,1,5,5,1,1,1,0,7],
+    [1,1,1,1,5,5,1,1,1,1,7],
+    [1,1,1,1,1,1,1,1,1,1,7],
+    [0,1,1,0,0,0,0,1,1,0,7],
+    [0,1,1,0,0,0,0,1,1,0,0]
+];
+
+const ORC_PIXEL_MAP = [
+    [0,0,1,1,1,1,1,1,0,0,0,0,0],
+    [0,1,1,1,1,1,1,1,1,0,0,0,0],
+    [1,1,2,2,2,2,2,2,1,1,0,0,0],
+    [1,1,3,4,1,1,3,4,1,1,0,0,0],
+    [1,1,1,1,1,1,1,1,1,1,0,0,0],
+    [0,1,1,5,5,5,5,1,1,0,6,6,6],
+    [0,7,7,7,7,7,7,7,0,6,8,8,6],
+    [7,7,7,7,7,7,7,7,7,0,6,8,8,6],
+    [7,7,7,9,9,7,7,7,7,0,0,6,6,0],
+    [7,7,7,9,9,7,7,7,7,0,0,6,0,0],
+    [0,7,7,7,7,7,7,7,0,0,0,6,0,0],
+    [0,1,1,0,0,0,0,1,1,0,0,0,0],
+    [1,1,1,0,0,0,0,1,1,1,0,0,0]
+];
+
+const BOSS_PIXEL_MAP = [
+    [0,0,0,1,1,1,1,1,1,1,1,0,0,0],
+    [0,0,1,2,2,2,2,2,2,2,2,1,0,0],
+    [0,1,2,3,3,2,2,2,2,3,3,2,1,0],
+    [0,1,2,4,5,2,2,2,2,4,5,2,1,0],
+    [0,1,2,2,2,2,6,6,2,2,2,2,1,0],
+    [1,2,2,2,2,6,6,6,6,2,2,2,2,1],
+    [1,7,7,8,8,8,8,8,8,8,8,7,7,1],
+    [1,7,7,8,9,9,8,8,9,9,8,7,7,1],
+    [1,7,7,8,8,8,8,8,8,8,8,7,7,1],
+    [0,1,7,7,8,8,8,8,8,8,7,7,1,0],
+    [0,0,1,1,10,10,10,10,10,10,1,1,0,0],
+    [0,0,1,10,10,10,10,10,10,10,10,1,0,0],
+    [0,1,1,10,10,0,0,10,10,10,11,1,0]
+];
+
+const UPGRADES_DEF = [
+    { id: 'hp', name: '추가 체력', icon: '❤️', max: 5, desc: '체력 +20 증가 및 회복' },
+    { id: 'meleeDmg', name: '칼 대미지', icon: '⚔️', max: 5, desc: '칼 기본 데미지 +5' },
+    { id: 'rangedDmg', name: '활 대미지', icon: '🏹', max: 3, desc: '활 완전 차징 데미지 +4' },
+    { id: 'chargeSpeed', name: '차징 속도', icon: '⚡', max: 3, desc: '활 차징 속도 향상' },
+    { id: 'attackSpeed', name: '공격 쿨타임', icon: '🗡️', max: 5, desc: '칼 베기 쿨다운 감소' },
+    { id: 'moveSpeed', name: '이동 속도', icon: '👟', max: 3, desc: '이동 속도 +12% 증가' },
+    { id: 'doubleJump', name: '2단 점프', icon: '🦘', max: 1, desc: '공중 2단 점프 가능' }
+];
+
+const player = {
+    x: 480, y: GROUND_Y - 42,
+    width: 33, height: 42, pSize: 2.1,
+    vx: 0, vy: 0,
+    baseSpeed: 4.8, jumpForce: -11.5,
+    isGrounded: true, jumpsLeft: 1, maxJumps: 1,
+    hp: 120, maxHp: 120, whiteHp: 120,
+    level: 1, xp: 0, nextXp: 50,
+    facing: 1, weapon: 'sword',
+    isAttackKeyDown: false, attackKeyPressedTime: 0,
+    swordSwingTimer: 0, swordCooldownTimer: 0,
+    stunTimer: 0, slashTrails: [],
+
+    upgrades: { hp: 0, meleeDmg: 0, rangedDmg: 0, chargeSpeed: 0, attackSpeed: 0, moveSpeed: 0, doubleJump: 0 },
+
+    getMeleeDamage() { return 24 + (this.upgrades.meleeDmg * 5); },
+    getRangedDamage() { return 18 + (this.upgrades.rangedDmg * 4); },
+    getChargeTime() { return 1.6 - (this.upgrades.chargeSpeed * 0.3); },
+    getAttackCooldown() { return 0.45 - (this.upgrades.attackSpeed * 0.06); },
+    getSpeed() { return this.baseSpeed * (1 + this.upgrades.moveSpeed * 0.12); },
+
+    reset() {
+        this.x = 480; this.y = GROUND_Y - this.height;
+        this.vx = 0; this.vy = 0;
+        this.maxHp = 120; this.hp = 120; this.whiteHp = 120;
+        this.level = 1; this.xp = 0; this.nextXp = 50;
+        this.weapon = 'sword'; this.facing = 1;
+        this.swordCooldownTimer = 0; this.swordSwingTimer = 0;
+        this.stunTimer = 0; this.maxJumps = 1; this.jumpsLeft = 1;
+        this.slashTrails = [];
+        for (let k in this.upgrades) this.upgrades[k] = 0;
+
+        updatePlayerHpUI(); updatePlayerXpUI(); updateWeaponUI(); renderStatusPanelUI();
+    },
+
+    swapWeapon() {
+        this.weapon = this.weapon === 'sword' ? 'bow' : 'sword';
+        updateWeaponUI();
+    },
+
+    jump() {
+        if (this.stunTimer > 0) return;
+        if (this.isGrounded) {
+            this.vy = this.jumpForce;
+            this.isGrounded = false;
+            this.jumpsLeft = this.maxJumps - 1;
+        } else if (this.upgrades.doubleJump > 0 && this.jumpsLeft > 0) {
+            this.vy = this.jumpForce * 0.9;
+            this.jumpsLeft--;
+            createHitParticles(this.x + this.width/2, this.y + this.height, '#69f0ae', 6);
+        }
+    },
+
+    update(dt) {
+        if (this.stunTimer > 0) {
+            this.stunTimer -= dt;
+            this.vx = 0;
+        } else {
+            this.vx = 0;
+            const currentSpeed = this.getSpeed();
+            if (keysPressed[keyBindings.left]) { this.vx = -currentSpeed; this.facing = -1; }
+            if (keysPressed[keyBindings.right]) { this.vx = currentSpeed; this.facing = 1; }
+        }
+
+        this.vy += 0.52;
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.y + this.height >= GROUND_Y) {
+            this.y = GROUND_Y - this.height;
+            this.vy = 0;
+            this.isGrounded = true;
+            this.jumpsLeft = this.maxJumps;
+        }
+
+        if (this.x < 10) this.x = 10;
+        if (this.x + this.width > canvas.width - 10) this.x = canvas.width - 10 - this.width;
+
+        if (this.swordSwingTimer > 0) this.swordSwingTimer -= dt;
+        if (this.swordCooldownTimer > 0) this.swordCooldownTimer -= dt;
+
+        this.slashTrails.forEach(t => t.life -= dt * 4.0);
+        this.slashTrails = this.slashTrails.filter(t => t.life > 0);
+
+        if (this.whiteHp > this.hp) {
+            this.whiteHp -= 0.3;
+            if (this.whiteHp < this.hp) this.whiteHp = this.hp;
+            updatePlayerHpUI();
+        }
+    },
+
+    tryPerformMeleeAttack() {
+        if (this.weapon !== 'sword' || this.swordCooldownTimer > 0 || this.stunTimer > 0) return;
+
+        this.swordCooldownTimer = this.getAttackCooldown();
+        this.swordSwingTimer = 0.22;
+        this.applyAutoAim();
+
+        const attackHitbox = {
+            x: this.facing === 1 ? this.x + this.width - 5 : this.x - 105,
+            y: this.y - 25, width: 110, height: this.height + 40
+        };
+
+        monsters.forEach(m => {
+            if (!m.isDying && checkRectOverlap(attackHitbox, m)) {
+                m.onMeleeAttacked(this.getMeleeDamage(), this.facing);
+            }
+        });
+
+        if (currentBoss && !currentBoss.isDying && checkRectOverlap(attackHitbox, currentBoss)) {
+            currentBoss.takeDamage(this.getMeleeDamage());
+        }
+
+        projectiles.forEach(p => {
+            if (p instanceof MonsterBullet) {
+                const bulletRect = { x: p.x - p.radius, y: p.y - p.radius, width: p.radius * 2, height: p.radius * 2 };
+                if (checkRectOverlap(attackHitbox, bulletRect)) {
+                    p.active = false;
+                    createHitParticles(p.x, p.y, '#00e676', 8);
+                }
+            }
+        });
+    },
+
+    releaseBowAttack() {
+        if (this.weapon !== 'bow' || this.stunTimer > 0) return;
+        this.applyAutoAim();
+
+        const chargeDuration = (Date.now() - this.attackKeyPressedTime) / 1000;
+        const requiredTime = this.getChargeTime();
+        const chargeRatio = Math.min(1.0, chargeDuration / requiredTime);
+        const isFullCharge = chargeRatio >= 1.0;
+
+        const finalDamage = isFullCharge ? this.getRangedDamage() : (this.getRangedDamage() * (0.25 + chargeRatio * 0.3));
+
+        projectiles.push(new PixelArrow(
+            this.x + (this.facing === 1 ? this.width + 8 : -8),
+            this.y + 18,
+            this.facing,
+            isFullCharge,
+            chargeRatio,
+            finalDamage
+        ));
+    },
+
+    applyAutoAim() {
+        if (attackSettings.autoAim) {
+            let targets = [...monsters];
+            if (currentBoss && !currentBoss.isDying) targets.push(currentBoss);
+
+            if (targets.length > 0) {
+                let nearestDist = Infinity;
+                let nearestTarget = null;
+                targets.forEach(m => {
+                    if (m.isDying) return;
+                    const dist = Math.abs((m.x + m.width/2) - (this.x + this.width/2));
+                    if (dist < nearestDist) { nearestDist = dist; nearestTarget = m; }
+                });
+                if (nearestTarget) this.facing = (nearestTarget.x + nearestTarget.width/2) >= (this.x + this.width/2) ? 1 : -1;
+            }
+        }
+    },
+
+    addXp(amount) {
+        this.xp += amount;
+        while (this.xp >= this.nextXp) {
+            this.xp -= this.nextXp;
+            this.level++;
+            this.nextXp = Math.floor(55 * Math.pow(1.3, this.level - 1));
+            triggerLevelUpModal();
+        }
+        updatePlayerXpUI();
+    },
+
+    takeDamage(dmg) {
+        this.hp -= dmg;
+        if (this.hp < 0) this.hp = 0;
+        triggerScreenShake(4, 0.2);
+        createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ff3333', 8);
+        updatePlayerHpUI();
+        if (this.hp <= 0) endGame();
+    },
+
+    draw() {
+        const colors = { 
+            1: '#1c2331', 2: '#4f5b66', 3: '#ffdbac', 4: '#e0a96d',
+            5: '#ffffff', 6: '#111111', 7: '#29b6f6', 8: '#0288d1',
+            9: '#b0bec5', 10: '#546e7a', 11: '#ffd700', 12: '#5d4037',
+            13: '#263238', 14: '#3e2723', 15: '#110a08'
+        };
+        drawPixelGrid(ctx, this.x, this.y, this.pSize, PLAYER_PIXEL_MAP, colors, this.facing === -1);
+
+        const isRight = this.facing === 1;
+        const px = Math.round(this.x);
+        const py = Math.round(this.y);
+
+        if (this.weapon === 'sword') {
+            const handX = isRight ? px + 24 : px + 8;
+            const handY = py + 22;
+
+            ctx.save();
+            ctx.translate(handX, handY);
+
+            let baseAngle = isRight ? -Math.PI / 4 : Math.PI + Math.PI / 4;
+            if (this.swordSwingTimer > 0) {
+                const swingProgress = (0.22 - this.swordSwingTimer) / 0.22;
+                const swingAngle = Math.sin(swingProgress * Math.PI) * 1.9;
+                baseAngle += isRight ? swingAngle : -swingAngle;
+            }
+            ctx.rotate(baseAngle);
+            if (!isRight) ctx.scale(1, -1);
+
+            ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, -1.5, 9, 3);
+            ctx.fillStyle = '#b71c1c'; ctx.fillRect(2, -1.5, 2, 3); ctx.fillRect(5, -1.5, 2, 3);
+            ctx.fillStyle = '#ffd700'; ctx.fillRect(9, -4, 3, 8);
+
+            ctx.fillStyle = '#546e7a'; ctx.fillRect(12, -2, 34, 2);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(12, 0, 32, 2);
+            ctx.fillStyle = '#e0e0e0'; ctx.fillRect(44, -1, 4, 2);
+
+            ctx.restore();
+
+            if (this.swordSwingTimer > 0) {
+                const progress = (0.22 - this.swordSwingTimer) / 0.22;
+                const arcLength = Math.PI * 0.72;
+                
+                let startAngle, currentAngle;
+                if (isRight) {
+                    startAngle = -Math.PI * 0.55;
+                    currentAngle = startAngle + (progress * arcLength);
+                } else {
+                    startAngle = Math.PI + Math.PI * 0.55;
+                    currentAngle = startAngle - (progress * arcLength);
+                }
+
+                ctx.save();
+                ctx.translate(handX, handY);
+
+                ctx.beginPath();
+                const outerRadius = 64;
+                const innerRadius = 18;
+
+                ctx.arc(0, 0, outerRadius, startAngle, currentAngle, !isRight);
+                ctx.arc(0, 0, innerRadius, currentAngle, startAngle, isRight);
+                ctx.closePath();
+
+                const grad = ctx.createRadialGradient(0, 0, innerRadius, 0, 0, outerRadius);
+                grad.addColorStop(0, 'rgba(0, 230, 118, 0.05)');
+                grad.addColorStop(0.6, 'rgba(0, 230, 118, 0.5)');
+                grad.addColorStop(1, 'rgba(255, 255, 255, 0.95)');
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+        } else if (this.weapon === 'bow') {
+            let chargeRatio = 0;
+            if (this.isAttackKeyDown) {
+                chargeRatio = Math.min(1.0, (Date.now() - this.attackKeyPressedTime) / (this.getChargeTime() * 1000));
+            }
+
+            const handX = isRight ? px + 24 : px + 8;
+            const handY = py + 22;
+
+            ctx.save();
+            ctx.translate(handX, handY);
+            if (!isRight) ctx.scale(-1, 1);
+
+            const topTipX = 0, topTipY = -15;
+            const botTipX = 0, botTipY = 15;
+            const midX = 10, midY = 0;
+
+            ctx.beginPath();
+            ctx.moveTo(topTipX, topTipY);
+            ctx.quadraticCurveTo(midX, -7, midX, midY);
+            ctx.quadraticCurveTo(midX, 7, botTipX, botTipY);
+            ctx.quadraticCurveTo(midX - 3, 7, midX - 3, midY);
+            ctx.quadraticCurveTo(midX - 3, -7, topTipX, topTipY);
+            ctx.closePath();
+            ctx.fillStyle = '#6d4c41';
+            ctx.fill();
+
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(topTipX - 1, topTipY, 3, 3);
+            ctx.fillRect(botTipX - 1, botTipY - 3, 3, 3);
+            ctx.fillStyle = '#3e2723';
+            ctx.fillRect(midX - 3, -3, 4, 6);
+
+            const stringPull = Math.floor(chargeRatio * 11);
+            const strX = (midX - 3) - stringPull;
+
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(topTipX + 1, topTipY + 1);
+            ctx.lineTo(strX, 0);
+            ctx.lineTo(botTipX + 1, botTipY - 1);
+            ctx.stroke();
+
+            if (this.isAttackKeyDown) {
+                ctx.fillStyle = '#8d6e63';
+                ctx.fillRect(strX, -1, 18, 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(strX + 16, -2, 4, 4);
+
+                ctx.restore();
+                const barW = 26, barH = 4;
+                const barX = Math.round(this.x + (this.width - barW) / 2);
+                const barY = Math.round(this.y - 12);
+                ctx.fillStyle = 'rgba(0,0,0,0.85)';
+                ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+                ctx.fillStyle = chargeRatio >= 1.0 ? '#00e676' : '#ffb74d';
+                ctx.fillRect(barX, barY, Math.floor(barW * chargeRatio), barH);
+                ctx.save();
+            } else {
+                ctx.restore();
+            }
+        }
+
+        if (this.stunTimer > 0) {
+            ctx.fillStyle = '#ffee55';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("💫 STUN", this.x + this.width/2, this.y - 6);
+        }
+    }
+};
+
+class PixelArrow {
+    constructor(x, y, facing, isFullCharge, chargeRatio, damage) {
+        this.x = x; this.y = y;
+        this.facing = facing;
+        this.isFullCharge = isFullCharge;
+        this.chargeRatio = chargeRatio;
+        this.damage = damage;
+        this.active = true;
+        this.stuck = false;
+        this.stuckTimer = 1.0;
+        this.stuckTarget = null;
+        this.offsetX = 0; this.offsetY = 0;
+
+        if (this.isFullCharge) {
+            this.vx = facing * 20;
+            this.vy = 0;
+            this.gravity = 0;
+        } else {
+            const speed = 7 + (chargeRatio * 9);
+            this.vx = facing * speed;
+            this.vy = -0.5 - (chargeRatio * 1.0);
+            this.gravity = 0.08 + ((1 - chargeRatio) * 0.25);
+        }
+    }
+
+    update(dt) {
+        if (this.stuck) {
+            this.stuckTimer -= dt;
+            if (this.stuckTimer <= 0) this.active = false;
+            if (this.stuckTarget && this.stuckTarget.active) {
+                this.x = this.stuckTarget.x + this.offsetX;
+                this.y = this.stuckTarget.y + this.offsetY;
+            }
+            return;
+        }
+
+        this.x += this.vx;
+        this.vy += this.gravity;
+        this.y += this.vy;
+
+        if (this.y >= GROUND_Y) {
+            this.y = GROUND_Y;
+            this.stuck = true;
+        }
+
+        if (this.x < -20 || this.x > canvas.width + 20) this.active = false;
+
+        let targets = [...monsters];
+        if (currentBoss && !currentBoss.isDying) targets.push(currentBoss);
+
+        targets.forEach(m => {
+            if (!this.stuck && !m.isDying && checkCircleRectOverlap({ x: this.x, y: this.y, radius: 4 }, m)) {
+                m.takeDamage(this.damage);
+                createHitParticles(this.x, this.y, this.isFullCharge ? '#ffd700' : '#8d6e63', 5);
+
+                this.stuck = true;
+                this.stuckTarget = m;
+                this.offsetX = this.x - m.x;
+                this.offsetY = this.y - m.y;
+            }
+        });
+    }
+
+    draw() {
+        ctx.save();
+        const angle = Math.atan2(this.vy, this.vx);
+        ctx.translate(this.x, this.y);
+        ctx.rotate(angle);
+
+        if (this.stuck) {
+            ctx.fillStyle = '#8d6e63'; ctx.fillRect(-10, -1, 8, 2);
+            ctx.fillStyle = '#ff5252'; ctx.fillRect(-12, -2, 3, 4);
+        } else {
+            ctx.fillStyle = this.isFullCharge ? '#ffd700' : '#b0bec5';
+            ctx.fillRect(4, -1.5, 4, 3);
+            ctx.fillStyle = '#8d6e63'; ctx.fillRect(-8, -1, 12, 2);
+            ctx.fillStyle = '#ff5252'; ctx.fillRect(-10, -2, 3, 4);
+        }
+        ctx.restore();
+    }
+}
+
+class MonsterBullet {
+    constructor(x, y, targetX, targetY, speed = 3.6, color = '#e040fb', damage = 10) {
+        this.x = x; this.y = y;
+        this.damage = damage; this.radius = 4; this.active = true;
+        this.color = color;
+        const angle = Math.atan2(targetY - y, targetX - x);
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+    }
+
+    update() {
+        this.x += this.vx; this.y += this.vy;
+        if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
+
+        if (this.active && checkCircleRectOverlap(this, player)) {
+            player.takeDamage(this.damage);
+            this.active = false;
+        }
+    }
+
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - 3, this.y - 3, 6, 6);
+    }
+}
+
+// 오르크 충격파
+class Shockwave {
+    constructor(x, y, dir, damage = 12) {
+        this.x = x; this.y = y; this.dir = dir;
+        this.width = 16; this.height = 30;
+        this.speed = 6.0; this.damage = damage;
+        this.active = true;
+    }
+    update(dt) {
+        this.x += this.dir * this.speed;
+        if (this.x < 0 || this.x > canvas.width) this.active = false;
+
+        if (this.active && checkRectOverlap(this, player)) {
+            player.takeDamage(this.damage);
+            player.stunTimer = 0.5;
+            this.active = false;
+        }
+    }
+    draw() {
+        ctx.fillStyle = '#ff9800';
+        ctx.fillRect(this.x, this.y - this.height, this.width, this.height);
+    }
+}
+
+// 경고 장판 (Telegraph)
+class Telegraph {
+    constructor(x, y, width, height, duration, onComplete) {
+        this.x = x; this.y = y; this.width = width; this.height = height;
+        this.duration = duration; this.maxDuration = duration;
+        this.onComplete = onComplete;
+        this.active = true;
+    }
+    update(dt) {
+        this.duration -= dt;
+        if (this.duration <= 0) {
+            this.active = false;
+            if (this.onComplete) this.onComplete();
+        }
+    }
+    draw() {
+        const ratio = 1 - (this.duration / this.maxDuration);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.25)';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+        ctx.fillRect(this.x, this.y, this.width * ratio, this.height);
+        ctx.strokeStyle = '#ff0000';
+        ctx.strokeRect(this.x, this.y, this.width, this.height);
+    }
+}
+
+// 보스 떨어진 Boulder/Meteor
+class FallingMeteor {
+    constructor(x, targetY, damage = 25) {
+        this.x = x; this.y = -40; this.targetY = targetY;
+        this.vy = 12; this.damage = damage; this.active = true;
+    }
+    update() {
+        this.y += this.vy;
+        if (this.y >= this.targetY) {
+            this.active = false;
+            triggerScreenShake(6, 0.25);
+            createHitParticles(this.x, this.targetY, '#ff3333', 15);
+            if (checkCircleRectOverlap({ x: this.x, y: this.targetY, radius: 24 }, player)) {
+                player.takeDamage(this.damage);
+            }
+        }
+    }
+    draw() {
+        ctx.fillStyle = '#ff5722';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 14, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+class Monster {
+    constructor(type, spawnSide) {
+        this.type = type;
+        this.width = 30; this.height = 36;
+        this.x = spawnSide === 'left' ? -this.width : canvas.width;
+        this.y = GROUND_Y - this.height;
+        this.vx = 0; this.vy = 0;
+        this.active = true;
+        this.isDying = false;
+        this.deathTimer = 0.4;
+
+        this.hitFlashTimer = 0;
+        this.walkAnimTimer = Math.random() * 10;
+        this.pSize = 2.7;
+        this.patternTimer = 0;
+
+        if (type === 'imp') {
+            this.maxHp = 22; this.speed = 2.8; this.damage = 9; this.xpValue = 6;
+            this.state = 'APPROACH';
+            this.leapCooldown = 0;
+        } else if (type === 'orc') {
+            this.maxHp = 60; this.speed = 1.3; this.damage = 16; this.xpValue = 14;
+            this.height = 40; this.width = 35; this.y = GROUND_Y - this.height;
+            this.isBlocking = false;
+            this.blockTimer = 0;
+            this.smashCooldown = 1.0;
+        } else if (type === 'mage') {
+            this.maxHp = 32; this.speed = 1.4; this.damage = 12; this.xpValue = 10;
+            this.castTimer = 0; this.teleportCooldown = 0;
+        }
+
+        this.hp = this.maxHp; this.whiteHp = this.maxHp;
+    }
+
+    onMeleeAttacked(dmg, facingDir) {
+        if (this.type === 'orc' && this.isBlocking) {
+            dmg *= 0.2;
+            floatingTexts.push(new FloatingText("🛡️ 방패 방어!", this.x + this.width/2, this.y - 12, '#b0bec5'));
+        }
+        
+        this.takeDamage(dmg);
+        this.vx += facingDir * 4.5;
+    }
+
+    takeDamage(dmg) {
+        if (this.isDying) return;
+        this.hp -= dmg;
+        this.hitFlashTimer = 0.1;
+        if (dmg > 0) {
+            createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ffffff', 4);
+            floatingTexts.push(new FloatingText(`-${Math.round(dmg)}`, this.x + this.width/2, this.y - 8, '#ff5252'));
+        }
+
+        if (this.hp <= 0) {
+            this.hp = 0;
+            this.isDying = true;
+        }
+    }
+
+    update(dt) {
+        if (this.isDying) {
+            this.deathTimer -= dt;
+            if (this.deathTimer <= 0) {
+                this.active = false;
+                score++;
+                player.addXp(this.xpValue);
+                floatingTexts.push(new FloatingText(`+${this.xpValue} XP`, this.x + this.width/2, this.y - 16, '#00e676'));
+                onMobKilled();
+            }
+            return;
+        }
+
+        if (this.whiteHp > this.hp) {
+            this.whiteHp -= 0.3;
+            if (this.whiteHp < this.hp) this.whiteHp = this.hp;
+        }
+        if (this.hitFlashTimer > 0) this.hitFlashTimer -= dt;
+
+        this.x += this.vx; this.vx *= 0.8;
+        const dir = player.x > this.x ? 1 : -1;
+        this.walkAnimTimer += dt * 8;
+
+        if (this.type === 'imp') {
+            const dist = Math.abs(player.x - this.x);
+            if (this.leapCooldown > 0) this.leapCooldown -= dt;
+
+            if (dist < 150 && dist > 40 && this.leapCooldown <= 0) {
+                this.vx = dir * 10;
+                this.vy = -6;
+                this.leapCooldown = 2.5;
+                floatingTexts.push(new FloatingText("⚡ 기습 습격!", this.x, this.y - 10, '#ff8a80'));
+            }
+
+            if (this.state === 'APPROACH') {
+                this.x += dir * this.speed;
+                if (dist < 32) {
+                    this.state = 'SLASH';
+                    this.stateTimer = 0.18;
+                    player.takeDamage(this.damage);
+                }
+            } else if (this.state === 'SLASH') {
+                this.stateTimer -= dt;
+                if (this.stateTimer <= 0) {
+                    this.state = 'RETREAT';
+                    this.stateTimer = 0.4;
+                }
+            } else if (this.state === 'RETREAT') {
+                this.x -= dir * (this.speed * 1.2);
+                this.stateTimer -= dt;
+                if (this.stateTimer <= 0) this.state = 'APPROACH';
+            }
+
+        } else if (this.type === 'orc') {
+            const dist = Math.abs(player.x - this.x);
+            if (this.smashCooldown > 0) this.smashCooldown -= dt;
+
+            this.patternTimer += dt;
+            if (this.patternTimer >= 3.0) {
+                this.isBlocking = true;
+                this.blockTimer = 1.2;
+                this.patternTimer = 0;
+            }
+
+            if (this.isBlocking) {
+                this.blockTimer -= dt;
+                this.x += dir * (this.speed * 0.6); // 방패를 든 채 전진
+                if (this.blockTimer <= 0) this.isBlocking = false;
+            } else {
+                this.x += dir * this.speed;
+            }
+
+            // 오르크 스매시 공격 & 지면 충격파 발사!
+            if (dist < 55 && this.smashCooldown <= 0) {
+                this.smashCooldown = 2.2;
+                player.stunTimer = 0.8;
+                player.takeDamage(this.damage);
+                player.vx = dir * 8;
+                projectiles.push(new Shockwave(this.x, GROUND_Y, dir, 12));
+                triggerScreenShake(3, 0.15);
+                createHitParticles(player.x, player.y, '#ffd700', 10);
+                floatingTexts.push(new FloatingText("💥 지면 강타!", player.x, player.y - 20, '#ffee55'));
+            }
+
+        } else if (this.type === 'mage') {
+            const dist = Math.abs(player.x - this.x);
+            if (this.teleportCooldown > 0) this.teleportCooldown -= dt;
+
+            if (dist < 70 && this.teleportCooldown <= 0) {
+                createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ea80fc', 12);
+                this.x = player.x > canvas.width / 2 ? player.x - 220 : player.x + 220;
+                this.x = Math.max(30, Math.min(canvas.width - 60, this.x));
+                this.teleportCooldown = 4.5;
+                floatingTexts.push(new FloatingText("✨ 순간이동", this.x + 10, this.y - 10, '#ea80fc'));
+            }
+
+            if (dist > 200) this.x += dir * this.speed;
+
+            this.castTimer += dt;
+            if (this.castTimer >= 1.6) {
+                // 마도사 3연사 탄환
+                for (let i = -1; i <= 1; i++) {
+                    projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 8, player.x + player.width/2 + (i * 25), player.y + player.height/2));
+                }
+                this.castTimer = 0;
+            }
+        }
+    }
+
+    draw() {
+        ctx.save();
+        const isFacingRight = player.x > this.x;
+        let renderY = this.y - Math.abs(Math.sin(this.walkAnimTimer)) * 2;
+
+        if (this.isDying) {
+            ctx.globalAlpha = Math.max(0, this.deathTimer / 0.4);
+            renderY += (0.4 - this.deathTimer) * 20;
+        }
+
+        const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
+
+        if (this.type === 'imp') {
+            const colors = { 1: '#d32f2f', 2: '#ff5252', 3: '#ffd700', 4: '#000000', 5: '#ff8a80', 6: '#78909c', 7: '#cfd8dc' };
+            drawPixelGrid(ctx, this.x, renderY, this.pSize, IMP_PIXEL_MAP, colors, !isFacingRight, overrideColor);
+        } else if (this.type === 'mage') {
+            const colors = { 1: '#4a148c', 2: '#8e24aa', 3: '#ffffff', 4: '#e040fb', 5: '#ffd700', 6: '#6d4c41', 7: '#00e676', 8: '#69f0ae' };
+            drawPixelGrid(ctx, this.x, renderY, this.pSize, MAGE_PIXEL_MAP, colors, !isFacingRight, overrideColor);
+        } else if (this.type === 'orc') {
+            const colors = { 1: '#37474f', 2: '#e53935', 3: '#ffffff', 4: '#212121', 5: '#2e7d32', 6: '#424242', 7: '#78909c', 8: '#b0bec5', 9: '#ffd700' };
+            drawPixelGrid(ctx, this.x - 2, renderY, this.pSize, ORC_PIXEL_MAP, colors, !isFacingRight, overrideColor);
+
+            if (this.isBlocking) {
+                ctx.fillStyle = 'rgba(144, 164, 174, 0.4)';
+                ctx.fillRect(this.x - 4, this.y - 2, this.width + 8, this.height + 4);
+            }
+        }
+        ctx.restore();
+
+        if (!this.isDying) {
+            const barW = 32, barH = 3;
+            const barX = this.x + (this.width - barW) / 2;
+            const barY = this.y - 8;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.85)';
+            ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(barX, barY, barW * (this.whiteHp / this.maxHp), barH);
+            ctx.fillStyle = '#ff3333';
+            ctx.fillRect(barX, barY, barW * (this.hp / this.maxHp), barH);
+        }
+    }
+}
+
+// 대형 보스 클래스
+class Boss {
+    constructor(stage) {
+        this.stage = stage;
+        this.width = 50; this.height = 65;
+        this.pSize = 3.8;
+        this.x = canvas.width / 2 - this.width / 2;
+        this.y = GROUND_Y - this.height;
+        this.active = true;
+        this.isDying = false;
+        this.deathTimer = 1.0;
+        this.hitFlashTimer = 0;
+        this.actionTimer = 0;
+        this.ultCooldown = 12.0;
+
+        if (stage === 1) {
+            this.name = "STAGE 1 BOSS : 광란의 블레이드 로드";
+            this.maxHp = 1000;
+            this.damage = 18; // 일반 몹 대미지의 1.3배
+            this.color = '#ff3333';
+        } else if (stage === 2) {
+            this.name = "STAGE 2 BOSS : 환영의 마도사";
+            this.maxHp = 2500;
+            this.damage = 22; // 일반 몹 대미지의 1.5배
+            this.color = '#ab47bc';
+        } else {
+            this.name = "FINAL BOSS : 종말의 카오스 디스트로이어";
+            this.maxHp = 5000;
+            this.damage = 30;
+            this.color = '#ff1744';
+        }
+
+        this.hp = this.maxHp; this.whiteHp = this.maxHp;
+        updateBossHUD(this);
+    }
+
+    takeDamage(dmg) {
+        if (this.isDying) return;
+        this.hp -= dmg;
+        this.hitFlashTimer = 0.1;
+        createHitParticles(this.x + this.width/2, this.y + this.height/2, '#ffd700', 6);
+        floatingTexts.push(new FloatingText(`-${Math.round(dmg)}`, this.x + this.width/2, this.y - 12, '#ffea00'));
+
+        if (this.hp <= 0) {
+            this.hp = 0;
+            this.isDying = true;
+            triggerScreenShake(12, 0.8);
+        }
+        updateBossHUD(this);
+    }
+
+    update(dt) {
+        if (this.isDying) {
+            this.deathTimer -= dt;
+            if (this.deathTimer <= 0) {
+                this.active = false;
+                onBossDefeated();
+            }
+            return;
+        }
+
+        if (this.whiteHp > this.hp) {
+            this.whiteHp -= 1.5;
+            if (this.whiteHp < this.hp) this.whiteHp = this.hp;
+            updateBossHUD(this);
+        }
+        if (this.hitFlashTimer > 0) this.hitFlashTimer -= dt;
+
+        this.actionTimer += dt;
+        this.ultCooldown -= dt;
+
+        const dir = player.x > this.x ? 1 : -1;
+
+        // 보스 행동 패턴
+        if (this.stage === 1) {
+            // 근거리 돌격형 보스
+            if (this.ultCooldown <= 0) {
+                this.executeBoss1Ultimate();
+                this.ultCooldown = 15.0;
+            } else if (this.actionTimer >= 2.2) {
+                const rand = Math.random();
+                if (rand < 0.4) {
+                    // 돌진 패턴 (Bull Charge)
+                    telegraphs.push(new Telegraph(0, GROUND_Y - 40, canvas.width, 40, 0.8, () => {
+                        this.x += dir * 280;
+                        this.x = Math.max(20, Math.min(canvas.width - 70, this.x));
+                        triggerScreenShake(6, 0.2);
+                        if (checkRectOverlap(this, player)) player.takeDamage(this.damage * 1.3);
+                    }));
+                } else if (rand < 0.7) {
+                    // 3연속 근접 베기
+                    if (Math.abs(player.x - this.x) < 90) {
+                        player.takeDamage(this.damage);
+                        createHitParticles(player.x, player.y, '#ff1744', 10);
+                    }
+                } else {
+                    // 대지 분쇄
+                    projectiles.push(new Shockwave(this.x, GROUND_Y, 1, 16));
+                    projectiles.push(new Shockwave(this.x, GROUND_Y, -1, 16));
+                }
+                this.actionTimer = 0;
+            } else {
+                this.x += dir * 1.8;
+            }
+
+        } else if (this.stage === 2) {
+            // 원거리 딜러 및 분신 보스
+            if (this.ultCooldown <= 0) {
+                this.executeBoss2Ultimate();
+                this.ultCooldown = 16.0;
+            } else if (this.actionTimer >= 2.0) {
+                const rand = Math.random();
+                if (rand < 0.3) {
+                    // 원거리 5연사 미사일
+                    for (let i = -2; i <= 2; i++) {
+                        projectiles.push(new MonsterBullet(this.x + this.width/2, this.y + 10, player.x + i * 30, player.y, 4.5, '#ab47bc', 14));
+                    }
+                } else if (rand < 0.6) {
+                    // 메인 레이저
+                    telegraphs.push(new Telegraph(0, player.y, canvas.width, 20, 0.7, () => {
+                        if (Math.abs(player.y - (player.y)) < 20) player.takeDamage(this.damage * 1.4);
+                        triggerScreenShake(4, 0.2);
+                    }));
+                } else {
+                    // 몹 소환
+                    monsters.push(new Monster('imp', 'left'));
+                    floatingTexts.push(new FloatingText("🌀 환영 소환!", this.x, this.y - 15, '#e040fb'));
+                }
+                this.actionTimer = 0;
+            }
+
+        } else if (this.stage === 3) {
+            // 최종 보스
+            if (this.ultCooldown <= 0) {
+                this.executeBoss3Ultimate();
+                this.ultCooldown = 18.0;
+            } else if (this.actionTimer >= 1.6) {
+                // 방사형 16방향 탄막 + 광역 공격
+                for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+                    const bx = this.x + this.width/2 + Math.cos(a) * 20;
+                    const by = this.y + this.height/2 + Math.sin(a) * 20;
+                    projectiles.push(new MonsterBullet(bx, by, bx + Math.cos(a) * 100, by + Math.sin(a) * 100, 3.8, '#ff1744', 16));
+                }
+                this.actionTimer = 0;
+            } else {
+                this.x += dir * 2.2;
+            }
+        }
+    }
+
+    executeBoss1Ultimate() {
+        floatingTexts.push(new FloatingText("⚡ [필살기] 대지진 & 암석 폭격!", canvas.width/2, 100, '#ff1744'));
+        triggerScreenShake(8, 1.2);
+        monsters.push(new Monster('imp', 'left'));
+        monsters.push(new Monster('imp', 'right'));
+
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                const rx = Math.random() * (canvas.width - 60) + 30;
+                telegraphs.push(new Telegraph(rx - 20, GROUND_Y - 10, 40, 10, 0.6, () => {
+                    fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 28));
+                }));
+            }, i * 300);
+        }
+    }
+
+    executeBoss2Ultimate() {
+        floatingTexts.push(new FloatingText("☄️ [필살기] 메테오 스트라이크!", canvas.width/2, 100, '#ab47bc'));
+        this.x = canvas.width / 2 - this.width / 2;
+        monsters.push(new Monster('mage', 'left'));
+
+        for (let i = 0; i < 7; i++) {
+            setTimeout(() => {
+                const rx = Math.random() * (canvas.width - 80) + 40;
+                telegraphs.push(new Telegraph(rx - 25, GROUND_Y - 10, 50, 10, 0.7, () => {
+                    fallingMeteors.push(new FallingMeteor(rx, GROUND_Y, 35));
+                }));
+            }, i * 250);
+        }
+    }
+
+    executeBoss3Ultimate() {
+        floatingTexts.push(new FloatingText("💥 [필살기] 카타클리즘 싱귤래리티!", canvas.width/2, 100, '#ff1744'));
+        triggerScreenShake(12, 1.5);
+        monsters.push(new Monster('orc', 'left'));
+        monsters.push(new Monster('mage', 'right'));
+
+        telegraphs.push(new Telegraph(100, 0, canvas.width - 200, canvas.height, 1.2, () => {
+            player.takeDamage(45);
+            triggerScreenShake(15, 0.5);
+        }));
+    }
+
+    draw() {
+        ctx.save();
+        const isFacingRight = player.x > this.x;
+        let renderY = this.y;
+
+        if (this.isDying) {
+            ctx.globalAlpha = Math.max(0, this.deathTimer / 1.0);
+        }
+
+        const colors = { 
+            1: '#212121', 2: '#d32f2f', 3: '#ff5252', 4: '#ffffff',
+            5: '#000000', 6: '#ffd700', 7: '#37474f', 8: '#ff9800',
+            9: '#b0bec5', 10: '#b71c1c', 11: '#4a148c'
+        };
+
+        const overrideColor = this.hitFlashTimer > 0 ? '#ffffff' : null;
+        drawPixelGrid(ctx, this.x, renderY, this.pSize, BOSS_PIXEL_MAP, colors, !isFacingRight, overrideColor);
+        ctx.restore();
+    }
+}
+
+let particles = [];
+let floatingTexts = [];
+let projectiles = [];
+let monsters = [];
+let telegraphs = [];
+let fallingMeteors = [];
+
+function createHitParticles(x, y, color, count = 5) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x, y, vx: (Math.random() - 0.5) * 5, vy: (Math.random() - 0.5) * 5,
+            life: 0.22, color
+        });
+    }
+}
+
+class FloatingText {
+    constructor(text, x, y, color) {
+        this.text = text; this.x = x; this.y = y; this.color = color;
+        this.life = 0.6; this.vy = -1.2;
+    }
+    update(dt) { this.y += this.vy; this.life -= dt; }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.font = '900 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.globalAlpha = Math.max(0, this.life / 0.6);
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+function updateSpawns(dt) {
+    if (bossActive) return;
+
+    spawnTimer += dt * 1000;
+    if (spawnTimer >= spawnInterval) {
+        spawnTimer = 0;
+        if (spawnInterval > 1200) spawnInterval -= 20;
+
+        const side = Math.random() < 0.5 ? 'left' : 'right';
+        const rand = Math.random();
+        let type = 'imp';
+        if (rand < 0.4) type = 'imp';
+        else if (rand < 0.75) type = 'orc';
+        else type = 'mage';
+
+        monsters.push(new Monster(type, side));
+    }
+}
+
+function onMobKilled() {
+    if (bossActive) return;
+
+    mobsKilledInStage++;
+    const req = stageMobsRequired[currentStage - 1];
+    document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (${mobsKilledInStage}/${req})`;
+
+    if (mobsKilledInStage >= req) {
+        spawnBoss();
+    }
+}
+
+function spawnBoss() {
+    bossActive = true;
+    monsters = []; // 기존 일반 몹 제거
+    currentBoss = new Boss(currentStage);
+    document.getElementById('boss-hud').style.display = 'block';
+    floatingTexts.push(new FloatingText("⚠️ BOSS WARNING ⚠️", canvas.width/2, 140, '#ff1744'));
+    triggerScreenShake(8, 0.5);
+}
+
+function onBossDefeated() {
+    bossActive = false;
+    currentBoss = null;
+    document.getElementById('boss-hud').style.display = 'none';
+
+    if (currentStage < 3) {
+        currentStage++;
+        mobsKilledInStage = 0;
+        document.getElementById('stage-hud-info').innerText = `STAGE ${currentStage} (0/${stageMobsRequired[currentStage - 1]})`;
+        floatingTexts.push(new FloatingText(`🎉 STAGE ${currentStage} START!`, canvas.width/2, 140, '#00e676'));
+    } else {
+        // 게임 완전 승리!
+        gameState = 'VICTORY';
+        document.getElementById('victory-screen').style.display = 'flex';
+    }
+}
+
+function updateBossHUD(boss) {
+    if (!boss) return;
+    document.getElementById('boss-name-text').innerText = boss.name;
+    const hpRatio = Math.max(0, (boss.hp / boss.maxHp) * 100);
+    const whiteRatio = Math.max(0, (boss.whiteHp / boss.maxHp) * 100);
+    document.getElementById('boss-hp-fill').style.width = `${hpRatio}%`;
+    document.getElementById('boss-hp-white').style.width = `${whiteRatio}%`;
+    document.getElementById('boss-hp-text').innerText = `${Math.ceil(boss.hp)} / ${boss.maxHp}`;
+}
+
+function checkRectOverlap(r1, r2) {
+    return !(r1.x + r1.width < r2.x || r1.x > r2.x + r2.width ||
+             r1.y + r1.height < r2.y || r1.y > r2.y + r2.height);
+}
+
+function checkCircleRectOverlap(circle, rect) {
+    const distX = Math.abs(circle.x - rect.x - rect.width / 2);
+    const distY = Math.abs(circle.y - rect.y - rect.height / 2);
+    if (distX > (rect.width / 2 + circle.radius)) return false;
+    if (distY > (rect.height / 2 + circle.radius)) return false;
+    if (distX <= (rect.width / 2) || distY <= (rect.height / 2)) return true;
+    const dx = distX - rect.width / 2;
+    const dy = distY - rect.height / 2;
+    return (dx * dx + dy * dy <= (circle.radius * circle.radius));
+}
+
+function drawBackground() {
+    ctx.fillStyle = '#08080e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#12121a';
+    ctx.lineWidth = 1;
+    for (let y = 0; y < GROUND_Y; y += 35) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    ctx.fillStyle = '#101018';
+    ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+    ctx.fillStyle = '#00e676';
+    ctx.fillRect(0, GROUND_Y, canvas.width, 2);
+}
+
+function gameLoop(timestamp) {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+
+    ctx.save();
+    if (screenShakeTime > 0) {
+        screenShakeTime -= dt;
+        const offsetX = (Math.random() - 0.5) * screenShakeIntensity;
+        const offsetY = (Math.random() - 0.5) * screenShakeIntensity;
+        ctx.translate(offsetX, offsetY);
+    }
+
+    if (gameState === 'PLAYING') {
+        player.update(dt);
+        updateSpawns(dt);
+
+        projectiles.forEach(p => p.update(dt));
+        projectiles = projectiles.filter(p => p.active);
+
+        monsters.forEach(m => m.update(dt));
+        monsters = monsters.filter(m => m.active);
+
+        if (currentBoss) currentBoss.update(dt);
+
+        telegraphs.forEach(t => t.update(dt));
+        telegraphs = telegraphs.filter(t => t.active);
+
+        fallingMeteors.forEach(m => m.update());
+        fallingMeteors = fallingMeteors.filter(m => m.active);
+
+        particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= dt; });
+        particles = particles.filter(p => p.life > 0);
+
+        floatingTexts.forEach(ft => ft.update(dt));
+        floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+
+        drawBackground();
+        telegraphs.forEach(t => t.draw());
+        monsters.forEach(m => m.draw());
+        if (currentBoss) currentBoss.draw();
+        projectiles.forEach(p => p.draw());
+        fallingMeteors.forEach(m => m.draw());
+        player.draw();
+
+        particles.forEach(p => {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 2, 2);
+        });
+        floatingTexts.forEach(ft => ft.draw());
+    } else if (gameState === 'LEVEL_UP' || gameState === 'PAUSED') {
+        drawBackground();
+        monsters.forEach(m => m.draw());
+        if (currentBoss) currentBoss.draw();
+        projectiles.forEach(p => p.draw());
+        player.draw();
+    }
+
+    ctx.restore();
+    requestAnimationFrame(gameLoop);
+}
+
+const startScreen = document.getElementById('start-screen');
+const inGameUI = document.getElementById('in-game-ui');
+const gameOverScreen = document.getElementById('game-over-screen');
+const victoryScreen = document.getElementById('victory-screen');
+const modalHelp = document.getElementById('modal-help');
+const modalSettings = document.getElementById('modal-settings');
+const modalLevelUp = document.getElementById('modal-levelup');
+const modalPause = document.getElementById('modal-pause');
+
+document.getElementById('status-panel-header').addEventListener('click', () => {
+    const body = document.getElementById('status-panel-list');
+    const icon = document.getElementById('panel-toggle-icon');
+    body.classList.toggle('minimized');
+    icon.innerText = body.classList.contains('minimized') ? '▲' : '▼';
+});
+
+function startGame() {
+    gameState = 'PLAYING';
+    score = 0;
+    currentStage = 1;
+    mobsKilledInStage = 0;
+    bossActive = false;
+    currentBoss = null;
+    monsters = []; projectiles = []; particles = []; floatingTexts = []; telegraphs = []; fallingMeteors = [];
+    spawnInterval = 3000;
+    player.reset();
+
+    document.getElementById('boss-hud').style.display = 'none';
+    document.getElementById('stage-hud-info').innerText = `STAGE 1 (0/${stageMobsRequired[0]})`;
+
+    startScreen.style.display = 'none';
+    gameOverScreen.style.display = 'none';
+    victoryScreen.style.display = 'none';
+    modalPause.style.display = 'none';
+    modalLevelUp.style.display = 'none';
+    modalLevelUp.classList.remove('active');
+    inGameUI.style.display = 'block';
+}
+
+function pauseGame() {
+    gameState = 'PAUSED';
+    modalPause.style.display = 'flex';
+}
+
+function resumeGame() {
+    gameState = 'PLAYING';
+    modalPause.style.display = 'none';
+}
+
+function endGame() {
+    gameState = 'GAMEOVER';
+    document.getElementById('final-score').innerText = `처치한 몬스터: ${score} 마리`;
+    document.getElementById('final-level').innerText = `최종 레벨: LV.${player.level}`;
+    gameOverScreen.style.display = 'flex';
+}
+
+function goHome() {
+    gameState = 'TITLE';
+    gameOverScreen.style.display = 'none';
+    victoryScreen.style.display = 'none';
+    modalPause.style.display = 'none';
+    inGameUI.style.display = 'none';
+    modalLevelUp.style.display = 'none';
+    modalLevelUp.classList.remove('active');
+    startScreen.style.display = 'flex';
+}
+
+function updatePlayerHpUI() {
+    const hpPercent = Math.max(0, (player.hp / player.maxHp) * 100);
+    const whitePercent = Math.max(0, (player.whiteHp / player.maxHp) * 100);
+    document.getElementById('player-hp-fill').style.width = `${hpPercent}%`;
+    document.getElementById('player-hp-white').style.width = `${whitePercent}%`;
+    document.getElementById('player-hp-text').innerText = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+}
+
+function updatePlayerXpUI() {
+    const xpPercent = Math.min(100, (player.xp / player.nextXp) * 100);
+    document.getElementById('player-xp-fill').style.width = `${xpPercent}%`;
+    document.getElementById('player-level-text').innerText = `LV. ${player.level}`;
+    document.getElementById('player-xp-text').innerText = `${player.xp} / ${player.nextXp} XP`;
+    document.getElementById('panel-level-badge').innerText = `LV.${player.level}`;
+}
+
+function updateWeaponUI() {
+    document.getElementById('weapon-sword-status').className = player.weapon === 'sword' ? 'weapon-active' : '';
+    document.getElementById('weapon-bow-status').className = player.weapon === 'bow' ? 'weapon-active' : '';
+}
+
+function renderStatusPanelUI() {
+    const listContainer = document.getElementById('status-panel-list');
+    listContainer.innerHTML = '';
+
+    UPGRADES_DEF.forEach(def => {
+        const curLv = player.upgrades[def.id];
+        const maxLv = def.max;
+
+        let gridStr = '';
+        for (let i = 0; i < maxLv; i++) {
+            gridStr += i < curLv ? '■' : '□';
+        }
+
+        let valText = '';
+        if (def.id === 'hp') valText = `+${curLv * 20}`;
+        else if (def.id === 'meleeDmg') valText = `+${curLv * 5}`;
+        else if (def.id === 'rangedDmg') valText = `+${curLv * 4}`;
+        else if (def.id === 'chargeSpeed') valText = `${player.getChargeTime().toFixed(1)}s`;
+        else if (def.id === 'attackSpeed') valText = `${player.getAttackCooldown().toFixed(2)}s`;
+        else if (def.id === 'moveSpeed') valText = `+${curLv * 12}%`;
+        else if (def.id === 'doubleJump') valText = curLv > 0 ? 'ON' : 'OFF';
+
+        const itemEl = document.createElement('div');
+        itemEl.className = 'status-item';
+        itemEl.innerHTML = `
+            <span class="status-name">${def.name}</span>
+            <span class="status-grid">[${gridStr}]</span>
+            <span class="status-val">${valText}</span>
+        `;
+        listContainer.appendChild(itemEl);
+    });
+}
+
+function triggerLevelUpModal() {
+    gameState = 'LEVEL_UP';
+    const available = UPGRADES_DEF.filter(u => player.upgrades[u.id] < u.max);
+    const choices = [...available].sort(() => 0.5 - Math.random()).slice(0, 3);
+    const cardsContainer = document.getElementById('upgrade-cards-list');
+    cardsContainer.innerHTML = '';
+
+    if (choices.length === 0) {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        card.style.animationDelay = '0.1s';
+        card.innerHTML = `<div class="upgrade-icon">💖</div><div class="upgrade-info"><div class="upgrade-title">체력 회복</div><div class="upgrade-desc">체력을 모두 회복합니다.</div></div>`;
+        card.onclick = () => {
+            player.hp = player.maxHp; player.whiteHp = player.maxHp;
+            updatePlayerHpUI(); closeLevelUpModal();
+        };
+        cardsContainer.appendChild(card);
+    } else {
+        choices.forEach((opt, idx) => {
+            const card = document.createElement('div');
+            card.className = 'upgrade-card';
+            card.style.animationDelay = `${0.1 + idx * 0.12}s`;
+            card.innerHTML = `
+                <div class="upgrade-icon">${opt.icon}</div>
+                <div class="upgrade-info">
+                    <div class="upgrade-title">${opt.name} (${player.upgrades[opt.id] + 1}/${opt.max})</div>
+                    <div class="upgrade-desc">${opt.desc}</div>
+                </div>
+            `;
+            card.onclick = () => {
+                applyUpgrade(opt.id);
+                closeLevelUpModal();
+            };
+            cardsContainer.appendChild(card);
+        });
+    }
+
+    modalLevelUp.style.display = 'flex';
+    requestAnimationFrame(() => {
+        modalLevelUp.classList.add('active');
+    });
+}
+
+function closeLevelUpModal() {
+    modalLevelUp.classList.remove('active');
+    modalLevelUp.style.display = 'none';
+    gameState = 'PLAYING';
+}
+
+function applyUpgrade(id) {
+    player.upgrades[id]++;
+    if (id === 'hp') {
+        player.maxHp += 20; player.hp += 20; player.whiteHp += 20;
+        updatePlayerHpUI();
+    } else if (id === 'doubleJump') {
+        player.maxJumps = 2;
+    }
+    renderStatusPanelUI();
+}
+
+document.getElementById('btn-start-game').addEventListener('click', startGame);
+document.getElementById('btn-restart').addEventListener('click', startGame);
+document.getElementById('btn-victory-restart').addEventListener('click', startGame);
+document.getElementById('btn-home').addEventListener('click', goHome);
+document.getElementById('btn-victory-home').addEventListener('click', goHome);
+document.getElementById('btn-resume').addEventListener('click', resumeGame);
+document.getElementById('btn-pause-exit').addEventListener('click', goHome);
+document.getElementById('btn-help').addEventListener('click', () => { modalHelp.style.display = 'flex'; });
+document.getElementById('btn-close-help').addEventListener('click', () => { modalHelp.style.display = 'none'; });
+
+const openSettings = () => { modalSettings.style.display = 'flex'; };
+document.getElementById('btn-lobby-settings').addEventListener('click', openSettings);
+document.getElementById('btn-close-settings').addEventListener('click', () => { modalSettings.style.display = 'none'; });
+
+document.getElementById('select-auto-aim').addEventListener('change', (e) => {
+    attackSettings.autoAim = e.target.value === 'on';
+});
+
+document.querySelectorAll('.key-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (currentlyBindingAction) return;
+        currentlyBindingAction = btn.getAttribute('data-action');
+        btn.classList.add('binding');
+        btn.innerText = '입력...';
+    });
+});
+
+function handleRebind(e) {
+    if (!currentlyBindingAction) return;
+    e.preventDefault();
+    const action = currentlyBindingAction;
+    keyBindings[action] = e.code;
+
+    let displayLabel = e.code.replace('Key', '');
+    if (e.code === 'Space') displayLabel = 'Space';
+    if (e.code === 'Enter') displayLabel = 'Enter';
+
+    const btn = document.querySelector(`.key-btn[data-action="${action}"]`);
+    if (btn) {
+        btn.classList.remove('binding');
+        btn.innerText = displayLabel;
+    }
+    currentlyBindingAction = null;
+}
+
+requestAnimationFrame((ts) => {
+    lastTime = ts;
+    drawBackground();
+    requestAnimationFrame(gameLoop);
+});
+</script>
+</body>
+</html>
